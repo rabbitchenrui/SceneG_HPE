@@ -82,11 +82,13 @@ class ChunkedGenerator_Seq:
         if len(lst) < self.target_img_len:
             first_element  = lst[0] if lst else None
             return [first_element] * (self.target_img_len - len(lst)) + lst
-        
+        return lst
+
     def pad_with_right(self, rst):
         if len(rst) < self.target_img_len:
             last_element  = rst[-1] if rst else None
             return  rst + [last_element] * (self.target_img_len - len(rst))
+        return rst
 
     def num_frames(self):
         return self.num_batches * self.batch_size
@@ -169,7 +171,6 @@ class ChunkedGenerator_Seq:
                         pad_right_3d = end_3d - high_3d
                         if pad_left_3d != 0 or pad_right_3d != 0:
                             self.batch_3d[i] = np.pad(seq_3d[low_3d:high_3d], ((pad_left_3d, pad_right_3d), (0, 0), (0, 0)), 'edge')
-                            print("Done")
                         else:
                             self.batch_3d[i] = seq_3d[low_3d:high_3d]
 
