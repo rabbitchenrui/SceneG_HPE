@@ -231,11 +231,11 @@ def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
 
     out_file_name = []
     for i in range(len(out_subject)):
-        if out_action[i].split()[0] == "Photo" and out_subject[i] == 'S1':
-            if len(out_action[i].split()) > 1:
-                out_action[i] = "TakingPhoto {}".format(out_action[i].split()[1])
-            else:
-                out_action[i] = "TakingPhoto"
+        # if out_action[i].split()[0] == "Photo" and out_subject[i] == 'S1':
+        #     if len(out_action[i].split()) > 1:
+        #         out_action[i] = "TakingPhoto {}".format(out_action[i].split()[1])
+        #     else:
+        #         out_action[i] = "TakingPhoto"
         replace_action_name = out_action[i].replace(" ", "_")
         file_name = out_subject[i] + '_' + replace_action_name + '.' + out_camera_name[i]
         file_path = os.path.join("depth", out_subject[i], file_name)
