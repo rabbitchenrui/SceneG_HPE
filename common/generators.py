@@ -28,7 +28,7 @@ class ChunkedGenerator_Seq:
     kps_left and kps_right -- list of left/right 2D keypoints if flipping is enabled
     joints_left and joints_right -- list of left/right 3D joints if flipping is enabled
     """
-    def __init__(self, batch_size, cameras, poses_3d, poses_2d,
+    def __init__(self, batch_size, cameras, poses_3d, poses_2d, filename_list,
                  chunk_length, pad=0, causal_shift=0,
                  shuffle=True, random_seed=1234,
                  augment=False, kps_left=None, kps_right=None, joints_left=None, joints_right=None,
@@ -68,6 +68,7 @@ class ChunkedGenerator_Seq:
         self.cameras = cameras
         self.poses_3d = poses_3d
         self.poses_2d = poses_2d
+        self.filename_list = filename_list
         
         self.augment = augment
         self.kps_left = kps_left
@@ -109,8 +110,10 @@ class ChunkedGenerator_Seq:
                 for i, (seq_i, start_3d, end_3d, flip) in enumerate(chunks):
                     # start_2d = start_3d - self.pad - self.causal_shift
                     start_2d = start_3d
+                    start_fileidx = start_3d
                     # end_2d = end_3d + self.pad - self.causal_shift
                     end_2d = end_3d
+                    end_fileidx = end_3d
 
                     # 2D poses
                     seq_2d = self.poses_2d[seq_i]
@@ -122,6 +125,14 @@ class ChunkedGenerator_Seq:
                         self.batch_2d[i] = np.pad(seq_2d[low_2d:high_2d], ((pad_left_2d, pad_right_2d), (0, 0), (0, 0)), 'edge')
                     else:
                         self.batch_2d[i] = seq_2d[low_2d:high_2d]
+
+                    #image_file
+                    fileidx = list(range(1, len(seq_2d), 5))
+                    seq_file_name = self.filename_list[seq_i]
+                    low_fileidx = max(start_fileidx, 0)
+                    high_fileidx = min(end_fileidx, len(seq_2d))
+                    image_idx = [ x for x in fileidx if low_fileidx < x < high_fileidx]
+                    image_filename = [ seq_file_name + "_" + str(x).zfill(6) + ".jpg" for x in image_idx]
 
                     if flip:
                         # Flip 2D keypoints

@@ -156,6 +156,9 @@ def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
     out_poses_3d = []
     out_poses_2d = []
     out_camera_params = []
+    out_subject = []
+    out_action = []
+    out_camera_name = []
     for subject in subjects:
         for action in keypoints[subject].keys():
             if action_filter is not None:
@@ -168,8 +171,14 @@ def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
                     continue
 
             poses_2d = keypoints[subject][action]
+
+            # prepare image name related information
+
             for i in range(len(poses_2d)): # Iterate across cameras
+                out_action.append(action)
+                out_subject.append(subject)
                 out_poses_2d.append(poses_2d[i])
+
 
             if subject in dataset.cameras():
                 cams = dataset.cameras()[subject]
@@ -177,6 +186,7 @@ def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
                 for cam in cams:
                     if 'intrinsic' in cam:
                         out_camera_params.append(cam['intrinsic'])
+                        out_camera_name.append(cam['id'])
 
             if parse_3d_poses and 'positions_3d' in dataset[subject][action]:
                 poses_3d = dataset[subject][action]['positions_3d']
@@ -204,14 +214,19 @@ def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
             if out_poses_3d is not None:
                 out_poses_3d[i] = out_poses_3d[i][::stride]
 
-
-    return out_camera_params, out_poses_3d, out_poses_2d
+    out_file_name = []
+    for i in range(len(out_subject)):
+        replace_action_name = out_action[i].replace(" ", "_")
+        file_name = out_subject[i] + '_' + replace_action_name + '.' + out_camera_name[i]
+        file_path = os.path.join("depth", out_subject[i], file_name)
+        out_file_name.append(file_path)
+    return out_camera_params, out_poses_3d, out_poses_2d, out_file_name
 
 action_filter = None if args.actions == '*' else args.actions.split(',')
 if action_filter is not None:
     print('Selected actions:', action_filter)
 
-cameras_valid, poses_valid, poses_valid_2d = fetch(subjects_test, action_filter)
+cameras_valid, poses_valid, poses_valid_2d, files_name = fetch(subjects_test, action_filter)
 
 # set receptive_field as number assigned
 receptive_field = args.number_of_frames
@@ -303,7 +318,7 @@ def eval_data_prepare(receptive_field, inputs_2d, inputs_3d):
 
 # Training start
 if not args.evaluate:
-    cameras_train, poses_train, poses_train_2d = fetch(subjects_train, action_filter, subset=args.subset)
+    cameras_train, poses_train, poses_train_2d, files_name = fetch(subjects_train, action_filter, subset=args.subset)
 
     lr = args.learning_rate
     optimizer = optim.AdamW(model_pos_train.parameters(), lr=lr, weight_decay=0.1)
@@ -322,7 +337,7 @@ if not args.evaluate:
     final_momentum = 0.001
 
     # get training data
-    train_generator = ChunkedGenerator_Seq(args.batch_size//args.stride, cameras_train, poses_train, poses_train_2d, args.number_of_frames,
+    train_generator = ChunkedGenerator_Seq(args.batch_size//args.stride, cameras_train, poses_train, poses_train_2d, files_name, args.number_of_frames,
                                        pad=pad, causal_shift=causal_shift, shuffle=True, augment=args.data_augmentation,
                                        kps_left=kps_left, kps_right=kps_right, joints_left=joints_left, joints_right=joints_right)
     train_generator_eval = UnchunkedGenerator_Seq(cameras_train, poses_train, poses_train_2d,
