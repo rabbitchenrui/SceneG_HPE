@@ -1,6 +1,5 @@
 data/
 checkpoint/
-weights/
-common/__pycache_
 depth/
 test_unit/
+weights/
