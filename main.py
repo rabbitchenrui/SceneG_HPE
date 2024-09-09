@@ -6,21 +6,24 @@
 
 import numpy as np
 import random
-
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 from common.arguments import parse_args
 import torch
 
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import os
+
 import sys
 import errno
 import math
+import clip
+import time as time_now
 
 from einops import rearrange, repeat
 from copy import deepcopy
-
+from PIL import Image
 from common.camera import *
 import collections
 
@@ -39,8 +42,9 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 args = parse_args()
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+
 
 
 if args.evaluate != '':
@@ -152,6 +156,17 @@ else:
     subjects_test = [args.viz_subject]
 
 
+def read_img(filelist, img_embedding, img_preprocess, device):
+    output_image_features = []
+    for i in range(len(filelist)):
+        images = [Image.open(x).convert("RGB") for x in filelist[i]]
+        transformered_images =  torch.stack([img_preprocess(image) for image in images]).to(device)
+        with torch.no_grad():
+            image_features = img_embedding.encode_image(transformered_images)
+            output_image_features.append(image_features)
+    return torch.stack(output_image_features)
+
+
 def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
     out_poses_3d = []
     out_poses_2d = []
@@ -244,7 +259,6 @@ model_pos_train = D3DP(args, joints_left, joints_right, is_train=True)
 model_pos_test_temp = D3DP(args,joints_left, joints_right, is_train=False)
 model_pos = D3DP(args,joints_left, joints_right,  is_train=False, num_proposals=args.num_proposals, sampling_timesteps=args.sampling_timesteps)
 
-
 causal_shift = 0
 model_params = 0
 for parameter in model_pos.parameters():
@@ -261,6 +275,7 @@ if torch.cuda.is_available():
     model_pos_train = model_pos_train.cuda()
     model_pos_test_temp = nn.DataParallel(model_pos_test_temp)
     model_pos_test_temp = model_pos_test_temp.cuda()
+    model_clip, preprocess = clip.load("ViT-B/32", device = 'cuda:{}'.format(args.gpu))
 
 if args.resume or args.evaluate:
     chk_filename = os.path.join(args.checkpoint, args.resume if args.resume else args.evaluate)
@@ -376,7 +391,7 @@ if not args.evaluate:
 
         # Just train 1 time, for quick debug
         quickdebug=args.debug
-        for cameras_train, batch_3d, batch_2d in train_generator.next_epoch():
+        for cameras_train, batch_3d, batch_2d, filelist in train_generator.next_epoch():
             # if notrain:break
             # notrain=True
 
@@ -387,6 +402,11 @@ if not args.evaluate:
                 cameras_train = torch.from_numpy(cameras_train.astype('float32'))
             inputs_3d = torch.from_numpy(batch_3d.astype('float32'))
             inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
+            device = "cuda:{}".format(args.gpu)
+            start_time = time_now.time()
+            image_list = read_img(filelist, model_clip, preprocess, device)
+            end_time = time_now.time()
+            print("clip time cost : {}".format(end_time - start_time))
 
             if torch.cuda.is_available():
                 inputs_3d = inputs_3d.cuda()

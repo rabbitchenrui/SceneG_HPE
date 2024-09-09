@@ -1,3 +1,5 @@
 data/
 checkpoint/
 weights/
+common/__pycache_
+depth/

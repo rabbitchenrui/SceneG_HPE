@@ -14,7 +14,7 @@
             "console": "integratedTerminal",
             "args": ["-k", "cpn_ft_h36m_dbb",
             "-c", "checkpoint/model_h36m",
-            "-gpu", "5",
+            "-gpu", "0",
             "--nolog",
             // "--evaluate", "best_epoch_20_10.bin",
             // "-num_proposals", "20",

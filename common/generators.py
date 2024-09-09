@@ -54,6 +54,8 @@ class ChunkedGenerator_Seq:
         if poses_3d is not None:
             self.batch_3d = np.empty((batch_size, chunk_length, poses_3d[0].shape[-2], poses_3d[0].shape[-1]))
         self.batch_2d = np.empty((batch_size, chunk_length, poses_2d[0].shape[-2], poses_2d[0].shape[-1]))
+        self.filelist = [[] for i in range(batch_size)]
+        self.target_img_len = 48
 
         self.num_batches = (len(pairs) + batch_size - 1) // batch_size
         self.batch_size = batch_size
@@ -75,7 +77,17 @@ class ChunkedGenerator_Seq:
         self.kps_right = kps_right
         self.joints_left = joints_left
         self.joints_right = joints_right
+
+    def pad_with_left(self, lst):
+        if len(lst) < self.target_img_len:
+            first_element  = lst[0] if lst else None
+            return [first_element] * (self.target_img_len - len(lst)) + lst
         
+    def pad_with_right(self, rst):
+        if len(rst) < self.target_img_len:
+            last_element  = rst[-1] if rst else None
+            return  rst + [last_element] * (self.target_img_len - len(rst))
+
     def num_frames(self):
         return self.num_batches * self.batch_size
 
@@ -131,8 +143,17 @@ class ChunkedGenerator_Seq:
                     seq_file_name = self.filename_list[seq_i]
                     low_fileidx = max(start_fileidx, 0)
                     high_fileidx = min(end_fileidx, len(seq_2d))
+                    pad_left_idx = low_fileidx - start_fileidx
+                    pad_right_idx = end_fileidx - high_fileidx
                     image_idx = [ x for x in fileidx if low_fileidx < x < high_fileidx]
+                    if pad_left_idx != 0:
+                        image_idx = self.pad_with_left(image_idx)
+                    elif pad_right_idx != 0:
+                        image_idx = self.pad_with_right(image_idx)
+                    if len(image_idx) > self.target_img_len:
+                        image_idx = image_idx[:-1]
                     image_filename = [ seq_file_name + "_" + str(x).zfill(6) + ".jpg" for x in image_idx]
+                    self.filelist[i] = image_filename
 
                     if flip:
                         # Flip 2D keypoints
@@ -148,6 +169,7 @@ class ChunkedGenerator_Seq:
                         pad_right_3d = end_3d - high_3d
                         if pad_left_3d != 0 or pad_right_3d != 0:
                             self.batch_3d[i] = np.pad(seq_3d[low_3d:high_3d], ((pad_left_3d, pad_right_3d), (0, 0), (0, 0)), 'edge')
+                            print("Done")
                         else:
                             self.batch_3d[i] = seq_3d[low_3d:high_3d]
 
@@ -174,7 +196,7 @@ class ChunkedGenerator_Seq:
                 elif self.poses_3d is None:
                     yield self.batch_cam[:len(chunks)], None, self.batch_2d[:len(chunks)]
                 else:
-                    yield self.batch_cam[:len(chunks)], self.batch_3d[:len(chunks)], self.batch_2d[:len(chunks)]
+                    yield self.batch_cam[:len(chunks)], self.batch_3d[:len(chunks)], self.batch_2d[:len(chunks)], self.filelist
             
             if self.endless:
                 self.state = None
