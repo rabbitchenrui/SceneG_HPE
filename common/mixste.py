@@ -124,6 +124,43 @@ class Block(nn.Module):
             x = rearrange(x, 'b c t -> b t c')
         return x
 
+class TemporalCrossAttention(nn.Module):
+
+    def __init__(self, feature_dim, num_head, dropout, embeded_feature):
+        super().__init__()
+        self.num_head = num_head
+        self.norm = nn.LayerNorm(feature_dim)
+        self.imgf_norm = nn.LayerNorm(feature_dim)
+        self.query = nn.Linear(feature_dim, feature_dim)
+        self.key = nn.Linear(feature_dim, feature_dim)
+        self.value = nn.Linear(feature_dim, feature_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.proj_out = nn.Linear(feature_dim, feature_dim)
+    
+    def forward(self, x, imgf):
+        """
+            x: B, T, D
+            xf: B, N, L
+        """
+        B, T, D = x.shape
+        N = imgf.shape[1]
+        H = self.num_head
+        query = self.query(self.norm(x)).unsqueeze(2)
+        query = query.view(B, T, H, -1)
+        key = self.key(self.imgf_norm(imgf)).unsqueeze(1)
+        key = key.repeat(int(B/key.shape[0]), 1, 1, 1)
+        key = key.view(B, N, H, -1)
+
+        attention = torch.einsum('bnhd,bmhd->bnmh', query, key) / math.sqrt(D // H)
+        weight = self.dropout(F.softmax(attention, dim=2))        
+        value = self.value(self.imgf_norm(imgf)).unsqueeze(1)
+        value = value.repeat(int(B/value.shape[0]), 1, 1, 1)
+        value = value.view(B, N, H, -1)
+        y = torch.einsum('bnmh,bmhd->bnhd', weight, value).reshape(B, T, D)
+        # y = x + self.proj_out(y, emb)
+        y = x + self.proj_out(y)
+        return y
+
 class SinusoidalPositionEmbeddings(nn.Module):
     def __init__(self, dim):
         super().__init__()
@@ -203,6 +240,8 @@ class  MixSTE2(nn.Module):
         self.Spatial_norm = norm_layer(embed_dim_ratio)
         self.Temporal_norm = norm_layer(embed_dim)
 
+        self.temporal_cross_attn = TemporalCrossAttention(512, num_head=num_heads, dropout=drop_rate, embeded_feature=512)
+
 
         self.head = nn.Sequential(
             nn.LayerNorm(embed_dim),
@@ -275,7 +314,7 @@ class  MixSTE2(nn.Module):
         
         return x
 
-    def forward(self, x_2d, x_3d, t):
+    def forward(self, x_2d, x_3d, t, img):
         if self.is_train:
             b, f, n, c = x_2d.shape
         else:
@@ -283,6 +322,8 @@ class  MixSTE2(nn.Module):
 
         x = self.STE_forward(x_2d, x_3d, t)
 
+        x = self.temporal_cross_attn(x, img)
+        
         x = self.TTE_foward(x)
 
         x = rearrange(x, '(b n) f cw -> b f n cw', n=n)

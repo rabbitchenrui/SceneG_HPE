@@ -266,7 +266,7 @@ class D3DP(nn.Module):
 
         return sqrt_alphas_cumprod_t * x_start + sqrt_one_minus_alphas_cumprod_t * noise
 
-    def forward(self, input_2d, input_3d, input_2d_flip=None):
+    def forward(self, input_2d, input_3d, image, input_2d_flip=None):
 
         # Prepare Proposals.
         if not self.is_train:
@@ -282,7 +282,7 @@ class D3DP(nn.Module):
             x_poses = x_poses.float()
             t = t.squeeze(-1)
 
-            pred_pose = self.pose_estimator(input_2d, x_poses, t)
+            pred_pose = self.pose_estimator(input_2d, x_poses, t, image)
 
             return pred_pose
 

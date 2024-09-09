@@ -163,7 +163,7 @@ def read_img(filelist, img_embedding, img_preprocess, device):
         transformered_images =  torch.stack([img_preprocess(image) for image in images]).to(device)
         with torch.no_grad():
             image_features = img_embedding.encode_image(transformered_images)
-            output_image_features.append(image_features)
+            output_image_features.append(image_features.float())
     return torch.stack(output_image_features)
 
 
@@ -275,7 +275,7 @@ if torch.cuda.is_available():
     model_pos_train = model_pos_train.cuda()
     model_pos_test_temp = nn.DataParallel(model_pos_test_temp)
     model_pos_test_temp = model_pos_test_temp.cuda()
-    model_clip, preprocess = clip.load("ViT-B/32", device = 'cuda:{}'.format(args.gpu))
+    model_clip, preprocess = clip.load("ViT-B/32", device = 'cuda')
 
 if args.resume or args.evaluate:
     chk_filename = os.path.join(args.checkpoint, args.resume if args.resume else args.evaluate)
@@ -405,6 +405,7 @@ if not args.evaluate:
             device = "cuda:{}".format(args.gpu)
             start_time = time_now.time()
             image_list = read_img(filelist, model_clip, preprocess, device)
+
             end_time = time_now.time()
             print("clip time cost : {}".format(end_time - start_time))
 
@@ -419,7 +420,7 @@ if not args.evaluate:
             optimizer.zero_grad()
 
             # Predict 3D poses
-            predicted_3d_pos = model_pos_train(inputs_2d, inputs_3d)
+            predicted_3d_pos = model_pos_train(inputs_2d, inputs_3d, image_list)
 
             loss_3d_pos = mpjpe(predicted_3d_pos, inputs_3d)
 
