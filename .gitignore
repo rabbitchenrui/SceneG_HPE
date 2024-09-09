@@ -1,6 +1,0 @@
-data/
-checkpoint/
-depth/
-test_unit/
-weights/FastSAM-x.pt
-common/__pycache__/
