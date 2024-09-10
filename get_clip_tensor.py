@@ -67,6 +67,8 @@ if __name__ == '__main__':
     for subject in tqdm(keypoints.keys()):
         print("Dealing {}".format(subject))
         # clip_output_dic[subject] = {}
+        if subject not in ['S8', 'S9']:
+            continue
 
         subject_folder = os.path.join(target_folder, subject)
         if not os.path.exists(subject_folder):
@@ -99,7 +101,7 @@ if __name__ == '__main__':
                 end_time = time.time()
 
 
-                save_path = str(cam_idx) + ".pkl"
+                save_path = str(cam_idx) + ".pt"
                 save_path = os.path.join(action_folder, save_path)
                 torch.save(image_feature, save_path)
                 # clip_output_dic[subject][action1][cam_idx] = image_feature

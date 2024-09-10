@@ -7,6 +7,7 @@
 
 from itertools import zip_longest
 import numpy as np
+import pickle as pkl
 
      
 class ChunkedGenerator_Seq:
@@ -71,7 +72,8 @@ class ChunkedGenerator_Seq:
         self.poses_3d = poses_3d
         self.poses_2d = poses_2d
         self.filename_list = filename_list
-        
+        # self.z_depth_file_list = 
+
         self.augment = augment
         self.kps_left = kps_left
         self.kps_right = kps_right
@@ -147,15 +149,22 @@ class ChunkedGenerator_Seq:
                     high_fileidx = min(end_fileidx, len(seq_2d))
                     pad_left_idx = low_fileidx - start_fileidx
                     pad_right_idx = end_fileidx - high_fileidx
-                    image_idx = [ x for x in fileidx if low_fileidx < x < high_fileidx]
+                    image_idx = [ x // 5 for x in fileidx if low_fileidx < x < high_fileidx]
+                    
                     if pad_left_idx != 0:
                         image_idx = self.pad_with_left(image_idx)
                     elif pad_right_idx != 0:
                         image_idx = self.pad_with_right(image_idx)
                     if len(image_idx) > self.target_img_len:
                         image_idx = image_idx[:-1]
-                    image_filename = [ seq_file_name + "_" + str(x).zfill(6) + ".jpg" for x in image_idx]
+                    
+                    # image_filename = [ seq_file_name + "_" + str(x).zfill(6) + ".jpg" for x in image_idx]
+                    # image_filename = [ seq_file_name + ".pkl" for x in image_idx]
+                    image_filename = seq_file_name + ".pkl"
                     self.filelist[i] = image_filename
+                    with open(self.filelist[i], 'rb') as file:
+                        data = pkl.load(file)
+                    
 
                     if flip:
                         # Flip 2D keypoints
