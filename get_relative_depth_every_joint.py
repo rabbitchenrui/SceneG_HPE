@@ -27,13 +27,33 @@ kps_left, kps_right = list(keypoints_symmetry[0]), list(keypoints_symmetry[1])
 keypoints = keypoints['positions_2d'].item()
 
 depth_dic = {}
+target_folder = "./z_depth"
+if not os.path.exists(target_folder):
+    os.makedirs(target_folder)
+
+count = 0
 for subject in tqdm(keypoints.keys()):
     print("Dealing {}".format(subject))
-    depth_dic[subject] = {}
+    # depth_dic[subject] = {}
+    if subject not in ['S1', 'S8', 'S9']:
+    # if subject != 'S11':
+        continue
+    subject_floder = os.path.join(target_folder, subject)
+    if not os.path.exists(subject_floder):
+        os.makedirs(subject_floder)
+
     for action in tqdm(keypoints[subject]):
+        
+
+        # if action != 'WalkTogether 1':
+        #     continue
+        print("checking")
+        # if action != 'WalkTo'
         print("Dealing {}".format(action))
         action1 = action.replace(" ", "_")
-        depth_dic[subject][action1] = {}
+        action_folder = os.path.join(subject_floder, action1)
+        if not os.path.exists(action_folder):
+            os.makedirs(action_folder)
         for cam_idx, kps in enumerate(keypoints[subject][action]):
             mocap_length = len(dataset[subject][action]['positions'])
             if kps.shape[0] > mocap_length:
@@ -42,12 +62,13 @@ for subject in tqdm(keypoints.keys()):
 
             cam = dataset.cameras()[subject][cam_idx]
             cam_idx = cam['id']
-            depth_dic[subject][action1][cam_idx] = {}
             file_name = subject + '_' + action1 + '.' + cam_idx
 
             depth_file_name = os.path.join("depth", subject, file_name)
             seq_depth = []
             for i in range(len(kps)):
+                # if i != 711:
+                #     continue
                 if i % 5 == 1 :
                     depth_pos = kps[i]
                     depth_x = depth_pos[:, 0]
@@ -56,17 +77,26 @@ for subject in tqdm(keypoints.keys()):
                     depth_map = Image.open(image_path)
                     depth_z = []
                     for j in range(depth_x.shape[0]):
+                        # if j != 16:
+                        #     continue
                         depth_x0 = depth_x[j]
                         depth_y0 = depth_y[j]
-                        depth_z.append(depth_map.getpixel((depth_x0, depth_y0))[0]/255)
+                        # vis_depth_map_and_joint(depth_map=depth_map, depth_x=depth_x, depth_y=depth_y)
+                        if (depth_x0 > 1000 or depth_x0 < 0 ) or (depth_y0 > 1000 or depth_y0 < 0):
+                            depth_z.append(depth_temp)
+                            print(" A point out of picture")
+                            count = count + 1
+                        else:
+                            depth_temp = depth_map.getpixel((depth_x0, depth_y0))[0]/255
+                            depth_z.append(depth_temp)
+
                     depth_z = np.array(depth_z).astype(np.float32)
                     seq_depth.append(depth_z)
             seq_depth = np.stack(seq_depth)
-            depth_dic[subject][action1][cam_idx] = seq_depth
-            # with open("depth_dic.json", 'w') as json_file:
-            #     json.dump(depth_dic, json_file, indent=4)
-with open("depth_dic.pkl", 'wb') as file:
-    pkl.dump(depth_dic, file)
+            save_path = str(cam_idx) + ".jpg"
+            save_path = os.path.join(action_folder, save_path)
+            with open(save_path, "wb") as file:
+                pkl.dump(seq_depth, file)
 
-print("Done")
-            
+print("Point out of picture: {}".format(count))
+                        

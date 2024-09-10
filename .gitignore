@@ -1,6 +1,8 @@
 data/
 checkpoint/
 depth/
+z_depth/
+clip_feature/
 test_unit/
 weights/FastSAM-x.pt
 common/__pycache__/
