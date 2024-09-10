@@ -8,6 +8,7 @@
 from itertools import zip_longest
 import numpy as np
 import pickle as pkl
+import time
 
      
 class ChunkedGenerator_Seq:
@@ -56,7 +57,9 @@ class ChunkedGenerator_Seq:
             self.batch_3d = np.empty((batch_size, chunk_length, poses_3d[0].shape[-2], poses_3d[0].shape[-1]))
         self.batch_2d = np.empty((batch_size, chunk_length, poses_2d[0].shape[-2], poses_2d[0].shape[-1]))
         self.filelist = [[] for i in range(batch_size)]
+        self.z_depth = {}
         self.target_img_len = 48
+        self.batch_pesudo_depth = np.empty((batch_size, self.target_img_len, poses_2d[0].shape[-2]))
 
         self.num_batches = (len(pairs) + batch_size - 1) // batch_size
         self.batch_size = batch_size
@@ -72,13 +75,22 @@ class ChunkedGenerator_Seq:
         self.poses_3d = poses_3d
         self.poses_2d = poses_2d
         self.filename_list = filename_list
-        # self.z_depth_file_list = 
+        self.train_depth_path = "train_depth.pkl" 
+        self.train_depth = self.laod_z_depth()
+
 
         self.augment = augment
         self.kps_left = kps_left
         self.kps_right = kps_right
         self.joints_left = joints_left
         self.joints_right = joints_right
+
+    def laod_z_depth(self):
+        return np.load(self.train_depth_path, allow_pickle=True)
+    
+    def parser_filename(self, filename):
+        subject, action, cam_file = filename.split('/')[1:]
+        return subject, action, cam_file
 
     def pad_with_left(self, lst):
         if len(lst) < self.target_img_len:
@@ -141,29 +153,40 @@ class ChunkedGenerator_Seq:
                         self.batch_2d[i] = np.pad(seq_2d[low_2d:high_2d], ((pad_left_2d, pad_right_2d), (0, 0), (0, 0)), 'edge')
                     else:
                         self.batch_2d[i] = seq_2d[low_2d:high_2d]
-
-                    #image_file
-                    fileidx = list(range(1, len(seq_2d), 5))
-                    seq_file_name = self.filename_list[seq_i]
+                    
+                    # get image idx
                     low_fileidx = max(start_fileidx, 0)
                     high_fileidx = min(end_fileidx, len(seq_2d))
                     pad_left_idx = low_fileidx - start_fileidx
                     pad_right_idx = end_fileidx - high_fileidx
+                    fileidx = list(range(1, len(seq_2d), 5))
                     image_idx = [ x // 5 for x in fileidx if low_fileidx < x < high_fileidx]
-                    
                     if pad_left_idx != 0:
                         image_idx = self.pad_with_left(image_idx)
                     elif pad_right_idx != 0:
                         image_idx = self.pad_with_right(image_idx)
                     if len(image_idx) > self.target_img_len:
                         image_idx = image_idx[:-1]
+
+                    #Pseudo-depth
+                    subject, action, cam_file = self.parser_filename(self.filename_list[seq_i])
+                    cam = cam_file.split(".")[0]
+                    seq_depth = self.train_depth[subject][action][cam]
+                    self.batch_pesudo_depth[i] = seq_depth[image_idx]
+
+                    #image_file
+
+                    seq_file_name = self.filename_list[seq_i]
+
                     
-                    # image_filename = [ seq_file_name + "_" + str(x).zfill(6) + ".jpg" for x in image_idx]
-                    # image_filename = [ seq_file_name + ".pkl" for x in image_idx]
-                    image_filename = seq_file_name + ".pkl"
-                    self.filelist[i] = image_filename
-                    with open(self.filelist[i], 'rb') as file:
-                        data = pkl.load(file)
+
+                    
+                    # # image_filename = [ seq_file_name + "_" + str(x).zfill(6) + ".jpg" for x in image_idx]
+                    # # image_filename = [ seq_file_name + ".pkl" for x in image_idx]
+                    # image_filename = seq_file_name + ".pkl"
+                    # self.filelist[i] = image_filename
+                    # with open(self.filelist[i], 'rb') as file:
+                    #     data = pkl.load(file)
                     
 
                     if flip:
@@ -206,7 +229,8 @@ class ChunkedGenerator_Seq:
                 elif self.poses_3d is None:
                     yield self.batch_cam[:len(chunks)], None, self.batch_2d[:len(chunks)]
                 else:
-                    yield self.batch_cam[:len(chunks)], self.batch_3d[:len(chunks)], self.batch_2d[:len(chunks)], self.filelist
+                    # yield self.batch_cam[:len(chunks)], self.batch_3d[:len(chunks)], self.batch_2d[:len(chunks)], self.filelist
+                    yield self.batch_cam[:len(chunks)], self.batch_3d[:len(chunks)], self.batch_2d[:len(chunks)], self.batch_pesudo_depth
             
             if self.endless:
                 self.state = None

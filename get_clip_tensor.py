@@ -67,7 +67,7 @@ if __name__ == '__main__':
     for subject in tqdm(keypoints.keys()):
         print("Dealing {}".format(subject))
         # clip_output_dic[subject] = {}
-        if subject not in ['S8', 'S9']:
+        if subject not in ['S1']:
             continue
 
         subject_folder = os.path.join(target_folder, subject)
@@ -80,6 +80,8 @@ if __name__ == '__main__':
             action_folder = os.path.join(subject_folder, action1)
             if not os.path.exists(action_folder):
                 os.makedirs(action_folder)
+            else:
+                continue
             # clip_output_dic[subject][action1] = {}
             for cam_idx, kps in enumerate(keypoints[subject][action]):
                 mocap_length = len(dataset[subject][action]['positions'])

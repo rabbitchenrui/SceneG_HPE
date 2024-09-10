@@ -9,3 +9,7 @@ common/__pycache__/
 input.list
 3dhp_test/
 dic/
+train_depth.pkl
+test_depth.pkl
+train_clip_tensor.pkl
+test_clip_tensor.pkl

@@ -1,6 +1,11 @@
 import os
 import torch
 import pickle as pkl
+import numpy as np
+from scipy.interpolate import interp1d
+
+TrainSet = ['S1', 'S5', 'S6', 'S7', 'S8']
+TestSet = ['S9', 'S11']
 
 def parser_name(filename):
     subject = ""
@@ -27,3 +32,86 @@ def get_image_clip_tensor(filename):
     image_tensor = data[use_idx]
     return image_tensor
 
+def get_depth_dic(folder_path, type='train'):
+    root_depth = "z_depth"
+    target_dic = {}
+    if type == 'train':
+        Target_Set = TrainSet
+    elif type == 'test':
+        Target_Set = TestSet
+    for file in Target_Set:
+        print("Loading {}".format(file))
+        target_dic[file] = {}
+        file_path = os.path.join(root_depth, file)
+        for action in os.listdir(file_path):
+            print("Loading {}".format(action))
+            target_dic[file][action] = {}
+            action_path = os.path.join(file_path, action)
+            for cam_file in os.listdir(action_path):
+                cam = cam_file.split(".")[0]
+                cam_path = os.path.join(action_path, cam_file)
+                with open(cam_path, 'rb') as fl:
+                    data = pkl.load(fl)
+                target_dic[file][action][cam] = data
+    # np.save("{}_depth.npy".format(type), target_dic)
+    save_path = "{}_depth.pkl".format(type)
+    with open(save_path, 'wb') as fl:
+        pkl.dump(target_dic, fl)
+
+
+def get_clip_tensor_dic(type='train'):
+    root_depth = "clip_feature"
+    target_dic = {}
+    if type == 'train':
+        Target_Set = TrainSet
+    elif type == 'test':
+        Target_Set = TestSet
+    for file in Target_Set:
+        print("Loading {}".format(file))
+        target_dic[file] = {}
+        file_path = os.path.join(root_depth, file)
+        for action in os.listdir(file_path):
+            print("Loading {}".format(action))
+            target_dic[file][action] = {}
+            action_path = os.path.join(file_path, action)
+            for cam_file in os.listdir(action_path):
+                cam = cam_file.split(".")[0]
+                cam_path = os.path.join(action_path, cam_file)
+                # with open(cam_path, 'rb') as fl:
+                    # data = pkl.load(fl)
+                data = torch.load(cam_path)
+                target_dic[file][action][cam] = data[0]
+    # np.save("{}_depth.npy".format(type), target_dic)
+    save_path = "{}_clip_tensor.pkl".format(type)
+    with open(save_path, 'wb') as fl:
+        pkl.dump(target_dic, fl)
+
+def parser_filename(filename):
+    subject, action, cam_file = filename.split('/')[1:]
+    return subject, action, cam_file
+
+def interprate(input_array, type = 'linear'):
+    x_original = np.arange(48)
+    x_new = np.linspace(0, 47, 243)
+    interpolation_func = interp1d(x_original, x_new.T, kind=type, axis=0)
+    output_array = interpolation_func(x_new).T
+    print(output_array.shape)
+
+def test_tensor_from_clip(filename):
+    tensor = torch.load(filename)
+    print(tensor.shape)
+if __name__ == "__main__":
+    # get_depth_dic("./z_depth", 'train')
+    # print("Done")
+
+    # filename = 'z_depth/S1/Directions_1/54138969'
+    # subject, action, cam_file = parser_filename(filename)
+    # print(subject, action, cam_file)
+
+    # input = np.random.rand(48, 17)
+    # interprate(input)
+
+    # filename = "clip_feature/S9/Sitting/55011271.pt"
+    # test_tensor_from_clip(filename)
+
+    get_clip_tensor_dic('test')
