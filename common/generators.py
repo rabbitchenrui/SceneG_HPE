@@ -59,7 +59,9 @@ class ChunkedGenerator_Seq:
         self.filelist = [[] for i in range(batch_size)]
         self.z_depth = {}
         self.target_img_len = 48
+        self.clip_feature_dim = 512
         self.batch_pesudo_depth = np.empty((batch_size, self.target_img_len, poses_2d[0].shape[-2]))
+        self.batch_clip_tensor = np.empty((batch_size, self.target_img_len, self.clip_feature_dim))
 
         self.num_batches = (len(pairs) + batch_size - 1) // batch_size
         self.batch_size = batch_size
@@ -78,6 +80,8 @@ class ChunkedGenerator_Seq:
         self.train_depth_path = "train_depth.pkl" 
         self.train_depth = self.laod_z_depth()
 
+        self.train_clip_feature_path = "train_clip_tensor.pkl"
+        self.clip_feature = self.load_clip_feature()
 
         self.augment = augment
         self.kps_left = kps_left
@@ -86,8 +90,15 @@ class ChunkedGenerator_Seq:
         self.joints_right = joints_right
 
     def laod_z_depth(self):
-        return np.load(self.train_depth_path, allow_pickle=True)
-    
+        with open(self.train_depth_path, 'rb') as fl:
+            data = pkl.load(fl)
+        return data
+
+    def load_clip_feature(self):
+        with open(self.train_clip_feature_path, 'rb') as fl:
+            data = pkl.load(fl)
+        return data
+
     def parser_filename(self, filename):
         subject, action, cam_file = filename.split('/')[1:]
         return subject, action, cam_file
@@ -174,13 +185,12 @@ class ChunkedGenerator_Seq:
                     seq_depth = self.train_depth[subject][action][cam]
                     self.batch_pesudo_depth[i] = seq_depth[image_idx]
 
-                    #image_file
-
-                    seq_file_name = self.filename_list[seq_i]
-
-                    
-
-                    
+                    #Clip_image_feature
+                    seq_clip_feature = self.clip_feature[subject][action][cam]
+                    # print("feature.shape is", seq_clip_feature.shape)
+                    self.batch_clip_tensor[i] = seq_clip_feature[image_idx]
+                    # load_image
+                    # seq_file_name = self.filename_list[seq_i]
                     # # image_filename = [ seq_file_name + "_" + str(x).zfill(6) + ".jpg" for x in image_idx]
                     # # image_filename = [ seq_file_name + ".pkl" for x in image_idx]
                     # image_filename = seq_file_name + ".pkl"
@@ -230,7 +240,7 @@ class ChunkedGenerator_Seq:
                     yield self.batch_cam[:len(chunks)], None, self.batch_2d[:len(chunks)]
                 else:
                     # yield self.batch_cam[:len(chunks)], self.batch_3d[:len(chunks)], self.batch_2d[:len(chunks)], self.filelist
-                    yield self.batch_cam[:len(chunks)], self.batch_3d[:len(chunks)], self.batch_2d[:len(chunks)], self.batch_pesudo_depth
+                    yield self.batch_cam[:len(chunks)], self.batch_3d[:len(chunks)], self.batch_2d[:len(chunks)], self.batch_pesudo_depth, self.batch_clip_tensor
             
             if self.endless:
                 self.state = None
@@ -257,7 +267,7 @@ class UnchunkedGenerator_Seq:
     joints_left and joints_right -- list of left/right 3D joints if flipping is enabled
     """
     
-    def __init__(self, cameras, poses_3d, poses_2d, pad=0, causal_shift=0,
+    def __init__(self, cameras, poses_3d, poses_2d, filename_list, pad=0, causal_shift=0,
                  augment=False, kps_left=None, kps_right=None, joints_left=None, joints_right=None):
         assert poses_3d is None or len(poses_3d) == len(poses_2d)
         assert cameras is None or len(cameras) == len(poses_2d)
@@ -273,7 +283,51 @@ class UnchunkedGenerator_Seq:
         self.cameras = [] if cameras is None else cameras
         self.poses_3d = [] if poses_3d is None else poses_3d
         self.poses_2d = poses_2d
-        
+        self.filename_list = filename_list
+        # print("Done")
+        self.TrainSet = ['S1', 'S5', 'S6', 'S7', 'S8']
+        self.TestSet = ['S9', 'S11']
+        self.depth_path = self.get_depth_path()
+        self.depth = self.load_z_depth()
+
+        self.clip_feature_path = self.get_clip_tensor_path()
+        self.clip_feature = self.load_clip_feature()
+
+    def parser_file_name(self, filename):
+        subject, action, cam_file = filename.split("/")[1:]
+        cam = cam_file.split(".")[0]
+        return subject, action, cam
+
+    def get_depth_path(self):
+        if self.filename_list is not None:
+            if self.filename_list[0].split("/")[1] in self.TrainSet:
+                depth_path = "train_depth.pkl"
+            elif self.filename_list[0].split("/")[1] in self.TestSet:
+                depth_path =  "test_depth.pkl"
+        return depth_path
+
+    def get_clip_tensor_path(self):
+        if self.filename_list is not None:
+            if self.filename_list[0].split("/")[1] in self.TrainSet:
+                clip_path = "train_clip_tensor.pkl"
+            elif self.filename_list[0].split("/")[1] in self.TestSet:
+                clip_path =  "test_clip_tensor.pkl"
+        return clip_path
+
+    def load_z_depth(self):
+        with open(self.depth_path, 'rb') as fl:
+            data = pkl.load(fl)
+        return data
+
+    def load_clip_feature(self):
+        with open(self.clip_feature_path, 'rb') as fl:
+            data = pkl.load(fl)
+        return data
+
+    def parser_filename(self, filename):
+        subject, action, cam_file = filename.split('/')[1:]
+        return subject, action, cam_file
+
     def num_frames(self):
         count = 0
         for p in self.poses_2d:
@@ -290,10 +344,14 @@ class UnchunkedGenerator_Seq:
         self.augment = augment
     
     def next_epoch(self):
-        for seq_cam, seq_3d, seq_2d in zip_longest(self.cameras, self.poses_3d, self.poses_2d):
+        for seq_cam, seq_3d, seq_2d, filename in zip_longest(self.cameras, self.poses_3d, self.poses_2d, self.filename_list):
             batch_cam = None if seq_cam is None else np.expand_dims(seq_cam, axis=0)
             batch_3d = None if seq_3d is None else np.expand_dims(seq_3d, axis=0)
             batch_2d = None if seq_2d is None else np.expand_dims(seq_2d, axis=0)
+            subject, action, cam = self.parser_file_name(filename=filename)
+            batch_depth = self.depth[subject][action][cam]
+            batch_clip_feature = self.clip_feature[subject][action][cam]
+            # batch_depth = None if sself.depth
             # batch_2d = np.expand_dims(np.pad(seq_2d,
             #                 ((self.pad + self.causal_shift, self.pad - self.causal_shift), (0, 0), (0, 0)),
             #                 'edge'), axis=0)
@@ -313,7 +371,7 @@ class UnchunkedGenerator_Seq:
                 batch_2d[1, :, :, 0] *= -1
                 batch_2d[1, :, self.kps_left + self.kps_right] = batch_2d[1, :, self.kps_right + self.kps_left]
             # print(batch_2d.shape)
-            yield batch_cam, batch_3d, batch_2d
+            yield batch_cam, batch_3d, batch_2d, batch_clip_feature
 
 class UnchunkedGenerator_Seq2Seq:
     """

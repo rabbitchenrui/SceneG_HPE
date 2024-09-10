@@ -174,6 +174,8 @@ def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
     out_subject = []
     out_action = []
     out_camera_name = []
+    out_file_name = []
+
     for subject in subjects:
         for action in keypoints[subject].keys():
             if action_filter is not None:
@@ -229,7 +231,6 @@ def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
             if out_poses_3d is not None:
                 out_poses_3d[i] = out_poses_3d[i][::stride]
 
-    out_file_name = []
     for i in range(len(out_subject)):
         replace_action_name = out_action[i].replace(" ", "_")
         file_name = os.path.join(replace_action_name, out_camera_name[i])
@@ -243,7 +244,7 @@ action_filter = None if args.actions == '*' else args.actions.split(',')
 if action_filter is not None:
     print('Selected actions:', action_filter)
 
-cameras_valid, poses_valid, poses_valid_2d, files_name = fetch(subjects_test, action_filter)
+cameras_valid, poses_valid, poses_valid_2d, valid_files_name = fetch(subjects_test, action_filter)
 
 # set receptive_field as number assigned
 receptive_field = args.number_of_frames
@@ -277,7 +278,7 @@ if torch.cuda.is_available():
     model_pos_train = model_pos_train.cuda()
     model_pos_test_temp = nn.DataParallel(model_pos_test_temp)
     model_pos_test_temp = model_pos_test_temp.cuda()
-    model_clip, preprocess = clip.load("ViT-B/32", device = 'cuda')
+    # model_clip, preprocess = clip.load("ViT-B/32", device = 'cuda')
 
 if args.resume or args.evaluate:
     chk_filename = os.path.join(args.checkpoint, args.resume if args.resume else args.evaluate)
@@ -289,18 +290,24 @@ if args.resume or args.evaluate:
     model_pos.load_state_dict(checkpoint['model_pos'], strict=False)
 
 
-test_generator = UnchunkedGenerator_Seq(cameras_valid, poses_valid, poses_valid_2d,
+test_generator = UnchunkedGenerator_Seq(cameras_valid, poses_valid, poses_valid_2d, valid_files_name, 
                                     pad=pad, causal_shift=causal_shift, augment=False,
                                     kps_left=kps_left, kps_right=kps_right, joints_left=joints_left, joints_right=joints_right)
 print('INFO: Testing on {} frames'.format(test_generator.num_frames()))
 if not args.nolog:
     writer.add_text(args.log+'_'+TIMESTAMP + '/Testing Frames', str(test_generator.num_frames()))
 
-def eval_data_prepare(receptive_field, inputs_2d, inputs_3d):
-
+def eval_data_prepare(receptive_field, inputs_2d, inputs_3d, clip_tensor):
+    # splitting test data 
     assert inputs_2d.shape[:-1] == inputs_3d.shape[:-1], "2d and 3d inputs shape must be same! "+str(inputs_2d.shape)+str(inputs_3d.shape)
+
+
     inputs_2d_p = torch.squeeze(inputs_2d)
     inputs_3d_p = torch.squeeze(inputs_3d)
+    num_split = list(range(0, inputs_2d_p.shape[0], receptive_field))
+    num_split.append(inputs_2d_p.shape[0])
+    clip_split = list(range(1, inputs_2d_p.shape[0], 5))
+    clip_tensor_p = torch.squeeze(clip_tensor)
 
     if inputs_2d_p.shape[0] / receptive_field > inputs_2d_p.shape[0] // receptive_field: 
         out_num = inputs_2d_p.shape[0] // receptive_field+1
@@ -309,10 +316,21 @@ def eval_data_prepare(receptive_field, inputs_2d, inputs_3d):
 
     eval_input_2d = torch.empty(out_num, receptive_field, inputs_2d_p.shape[1], inputs_2d_p.shape[2])
     eval_input_3d = torch.empty(out_num, receptive_field, inputs_3d_p.shape[1], inputs_3d_p.shape[2])
+    eval_clip_tensor = torch.empty(out_num, 48, clip_tensor_p.shape[1])
 
     for i in range(out_num-1):
         eval_input_2d[i,:,:,:] = inputs_2d_p[i*receptive_field:i*receptive_field+receptive_field,:,:]
         eval_input_3d[i,:,:,:] = inputs_3d_p[i*receptive_field:i*receptive_field+receptive_field,:,:]
+        clip_split_p = [x // 5 for x in clip_split if num_split[i] < x < num_split[i+1]]
+        if len(clip_split_p) > 48:
+            clip_split_p = clip_split_p[:48]
+        eval_clip_tensor[i] = clip_tensor_p[clip_split_p]
+    
+    # deal special 
+    for j in range(len(eval_clip_tensor)):
+        if(eval_clip_tensor[j].shape[0] > 48):
+            eval_clip_tensor[j] = eval_clip_tensor[j][:-1]
+        # eval_clip_tensor[i,:,:,:] = inputs
     if inputs_2d_p.shape[0] < receptive_field:
         from torch.nn import functional as F
         pad_right = receptive_field-inputs_2d_p.shape[0]
@@ -327,8 +345,9 @@ def eval_data_prepare(receptive_field, inputs_2d, inputs_3d):
         inputs_3d_p = rearrange(inputs_3d_p, 'f c b -> b f c')
     eval_input_2d[-1,:,:,:] = inputs_2d_p[-receptive_field:,:,:]
     eval_input_3d[-1,:,:,:] = inputs_3d_p[-receptive_field:,:,:]
+    eval_clip_tensor[-1] = clip_tensor_p[-48:, :]
 
-    return eval_input_2d, eval_input_3d
+    return eval_input_2d, eval_input_3d, eval_clip_tensor
 
 
 ###################
@@ -357,7 +376,7 @@ if not args.evaluate:
     train_generator = ChunkedGenerator_Seq(args.batch_size//args.stride, cameras_train, poses_train, poses_train_2d, files_name, args.number_of_frames,
                                        pad=pad, causal_shift=causal_shift, shuffle=True, augment=args.data_augmentation,
                                        kps_left=kps_left, kps_right=kps_right, joints_left=joints_left, joints_right=joints_right)
-    train_generator_eval = UnchunkedGenerator_Seq(cameras_train, poses_train, poses_train_2d,
+    train_generator_eval = UnchunkedGenerator_Seq(cameras_train, poses_train, poses_train_2d, files_name,
                                               pad=pad, causal_shift=causal_shift, augment=False)
     print('INFO: Training on {} frames'.format(train_generator_eval.num_frames()))
     if not args.nolog:
@@ -393,23 +412,23 @@ if not args.evaluate:
 
         # Just train 1 time, for quick debug
         quickdebug=args.debug
-        for cameras_train, batch_3d, batch_2d, filelist in train_generator.next_epoch():
+        for cameras_train, batch_3d, batch_2d, pesudo_depth, clip_feature in train_generator.next_epoch():
             # if notrain:break
             # notrain=True
-
             if iteration % 1000 == 0:
                 print("%d/%d"% (iteration, num_batches))
-
             if cameras_train is not None:
                 cameras_train = torch.from_numpy(cameras_train.astype('float32'))
             inputs_3d = torch.from_numpy(batch_3d.astype('float32'))
             inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
+            clip_feature = torch.from_numpy(clip_feature.astype('float32'))
             device = "cuda:{}".format(args.gpu)
-            start_time = time_now.time()
-            image_list = read_img(filelist, model_clip, preprocess, device)
+            # start_time = time_now.time()
 
-            end_time = time_now.time()
-            print("clip time cost : {}".format(end_time - start_time))
+            # image_list = read_img(filelist, model_clip, preprocess, device)
+            
+            # end_time = time_now.time()
+            # print("clip time cost : {}".format(end_time - start_time))
 
             if torch.cuda.is_available():
                 inputs_3d = inputs_3d.cuda()
@@ -422,7 +441,7 @@ if not args.evaluate:
             optimizer.zero_grad()
 
             # Predict 3D poses
-            predicted_3d_pos = model_pos_train(inputs_2d, inputs_3d, image_list)
+            predicted_3d_pos = model_pos_train(inputs_2d, inputs_3d, clip_feature)
 
             loss_3d_pos = mpjpe(predicted_3d_pos, inputs_3d)
 
@@ -446,6 +465,7 @@ if not args.evaluate:
                 if N==inputs_3d.shape[0] * inputs_3d.shape[1]:
                     break
 
+        # N = 1000
         losses_3d_train.append(epoch_loss_3d_train / N)
         losses_3d_pos_train.append(epoch_loss_3d_pos_train / N)
         # torch.cuda.empty_cache()
@@ -464,9 +484,10 @@ if not args.evaluate:
             iteration = 0
             if not args.no_eval:
                 # Evaluate on test set
-                for cam, batch, batch_2d in test_generator.next_epoch():
+                for cam, batch, batch_2d, batch_clip_tensor in test_generator.next_epoch():
                     inputs_3d = torch.from_numpy(batch.astype('float32'))
                     inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
+                    inputs_clip_tensor = torch.from_numpt(batch_clip_tensor.astype('float32'))
 
                     ##### apply test-time-augmentation (following Videopose3d)
                     inputs_2d_flip = inputs_2d.clone()
@@ -475,8 +496,8 @@ if not args.evaluate:
 
                     ##### convert size
                     inputs_3d_p = inputs_3d
-                    inputs_2d, inputs_3d = eval_data_prepare(receptive_field, inputs_2d, inputs_3d_p)
-                    inputs_2d_flip, _ = eval_data_prepare(receptive_field, inputs_2d_flip, inputs_3d_p)
+                    inputs_2d, inputs_3d, clip_tensor= eval_data_prepare(receptive_field, inputs_2d, inputs_3d_p, inputs_clip_tensor)
+                    inputs_2d_flip, _, _a = eval_data_prepare(receptive_field, inputs_2d_flip, inputs_3d_p, inputs_clip_tensor)
 
                     if torch.cuda.is_available():
                         inputs_3d = inputs_3d.cuda()
@@ -484,9 +505,9 @@ if not args.evaluate:
                         inputs_2d_flip = inputs_2d_flip.cuda()
                     inputs_3d[:, :, 0] = 0
 
-
+                    # img = torch.zeros((batch_2d.shape[0], 48, 512))
                     predicted_3d_pos = model_pos_test_temp(inputs_2d, inputs_3d,
-                                                  input_2d_flip=inputs_2d_flip)  # b, t, h, f, j, c
+                                                  input_2d_flip=inputs_2d_flip, image=clip_tensor)  # b, t, h, f, j, c
 
                     predicted_3d_pos[:, :, :, :, 0] = 0
 
@@ -674,10 +695,11 @@ def evaluate(test_generator, action=None, return_predictions=False, use_trajecto
 
         #num_batches = test_generator.batch_num()
         quickdebug=args.debug
-        for cam, batch, batch_2d in test_generator.next_epoch():
+        for cam, batch, batch_2d, batch_clip_tensor in test_generator.next_epoch():
             inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
             inputs_3d = torch.from_numpy(batch.astype('float32'))
             cam = torch.from_numpy(cam.astype('float32'))
+            inputs_clip_tensor = torch.from_numpy(batch_clip_tensor.astype('float32'))
 
 
             ##### apply test-time-augmentation (following Videopose3d)
@@ -704,8 +726,8 @@ def evaluate(test_generator, action=None, return_predictions=False, use_trajecto
                 inputs_2d, inputs_3d = eval_data_prepare_pf(81, inputs_2d, inputs_3d_p)
                 inputs_2d_flip, _ = eval_data_prepare_pf(81, inputs_2d_flip, inputs_3d_p)
             else:
-                inputs_2d, inputs_3d = eval_data_prepare(receptive_field, inputs_2d, inputs_3d_p)
-                inputs_2d_flip, _ = eval_data_prepare(receptive_field, inputs_2d_flip, inputs_3d_p)
+                inputs_2d, inputs_3d, clip_tensor = eval_data_prepare(receptive_field, inputs_2d, inputs_3d_p, inputs_clip_tensor)
+                inputs_2d_flip, _, _a = eval_data_prepare(receptive_field, inputs_2d_flip, inputs_3d_p, inputs_clip_tensor)
 
 
             if torch.cuda.is_available():
@@ -727,13 +749,18 @@ def evaluate(test_generator, action=None, return_predictions=False, use_trajecto
                     inputs_2d_flip_single = inputs_2d_flip[batch_cnt * bs:]
                     inputs_3d_single = inputs_3d[batch_cnt * bs:]
                     inputs_traj_single = inputs_traj[batch_cnt * bs:]
+                    clip_tensor_single = clip_tensor[batch_cnt * bs:]
                 else:
                     inputs_2d_single = inputs_2d[batch_cnt * bs:(batch_cnt+1) * bs]
                     inputs_2d_flip_single = inputs_2d_flip[batch_cnt * bs:(batch_cnt+1) * bs]
                     inputs_3d_single = inputs_3d[batch_cnt * bs:(batch_cnt+1) * bs]
                     inputs_traj_single = inputs_traj[batch_cnt * bs:(batch_cnt + 1) * bs]
+                    clip_tensor_single = clip_tensor[batch_cnt * bs: (batch_cnt + 1) * bs]
+                    # clip_feature_single = clip_fe
 
-                predicted_3d_pos_single = model_eval(inputs_2d_single, inputs_3d_single, input_2d_flip=inputs_2d_flip_single) #b, t, h, f, j, c
+
+                # img = torch.zeros((batch_2d.shape[0], 48, 512))
+                predicted_3d_pos_single = model_eval(inputs_2d_single, inputs_3d_single, input_2d_flip=inputs_2d_flip_single, image=clip_tensor_single) #b, t, h, f, j, c
 
                 predicted_3d_pos_single[:, :, :, :, 0] = 0
 
@@ -959,6 +986,7 @@ else:
         out_poses_3d = []
         out_poses_2d = []
         out_camera_params = []
+        out_file_name = []
 
         for subject, action in actions:
             poses_2d = keypoints[subject][action]
@@ -971,11 +999,20 @@ else:
                 out_poses_3d.append(poses_3d[i])
 
             if subject in dataset.cameras():
+                out_camera_name = []
                 cams = dataset.cameras()[subject]
                 assert len(cams) == len(poses_2d), 'Camera count mismatch'
                 for cam in cams:
                     if 'intrinsic' in cam:
                         out_camera_params.append(cam['intrinsic'])
+                        out_camera_name.append(cam['id'])
+            
+            
+            replace_action_name = action.replace(" ", "_")
+            pre_name = os.path.join("z_depth", subject, replace_action_name)
+            file_name = [os.path.join(pre_name, x + ".pkl") for x in out_camera_name]
+            for file_temp in file_name:
+                out_file_name.append(file_temp)
 
         stride = args.downsample
         if stride > 1:
@@ -985,7 +1022,7 @@ else:
                 if out_poses_3d is not None:
                     out_poses_3d[i] = out_poses_3d[i][::stride]
 
-        return out_camera_params, out_poses_3d, out_poses_2d
+        return out_camera_params, out_poses_3d, out_poses_2d, out_file_name
 
     def run_evaluation(actions, action_filter=None):
         errors_p1 = []
@@ -1009,8 +1046,8 @@ else:
                 if not found:
                     continue
 
-            cameras_act, poses_act, poses_2d_act = fetch_actions(actions[action_key])
-            gen = UnchunkedGenerator_Seq(cameras_act, poses_act, poses_2d_act,
+            cameras_act, poses_act, poses_2d_act, filename_act = fetch_actions(actions[action_key])
+            gen = UnchunkedGenerator_Seq(cameras_act, poses_act, poses_2d_act, filename_act,
                                      pad=pad, causal_shift=causal_shift, augment=args.test_time_augmentation,
                                      kps_left=kps_left, kps_right=kps_right, joints_left=joints_left,
                                      joints_right=joints_right)

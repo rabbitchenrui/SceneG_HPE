@@ -1,0 +1,190 @@
+Evaluate!
+python main.py -k cpn_ft_h36m_dbb -c checkpoint/model_h36m -gpu 0 --evaluate best_epoch.bin -num_proposals 1 -b 4
+CUDA Device Count:  1
+Namespace(actions='*', alpha=0.01, batch_size=4, beta=2, bone_length_term=True, by_subject=False, checkpoint='checkpoint/model_h36m', checkpoint_frequency=20, compare=False, coverlr=False, cs=512, data_augmentation=True, dataset='h36m', debug=False, dense=False, dep=8, depth=4, disable_optimizations=False, downsample=1, dropout=0.0, epochs=400, evaluate='best_epoch.bin', export_training_curves=False, ft=False, ftchk='epoch_330.pth', ftpath='checkpoint/exp13_ft2d', ftpostrf=False, gpu='0', keypoints='cpn_ft_h36m_dbb', learning_rate=6e-05, linear_channel_size=1024, linear_projection=False, log='log/default', lr_decay=0.993, lr_decay_gap=10000, min_loss=100000, no_eval=False, no_proj=False, nolog=False, num_proposals=1, number_of_frames=243, p2=False, postrf=False, render=False, resume='', sampling_timesteps=5, scale=1.0, stride=243, subjects_test='S9,S11', subjects_train='S1,S5,S6,S7,S8', subjects_unlabeled='', subset=1, test_time_augmentation=True, timestep=1000, viz_action=None, viz_bitrate=3000, viz_camera=0, viz_downsample=1, viz_export=None, viz_limit=-1, viz_no_ground_truth=False, viz_output=None, viz_size=5, viz_skip=0, viz_subject=None, viz_video=None, warmup=1)
+Loading dataset...
+Preparing data...
+Loading 2D detections...
+INFO: Receptive field: 243 frames
+INFO: Trainable parameter count: 35.888131 Million
+Loading checkpoint checkpoint/model_h36m/best_epoch.bin
+This model was trained for 1 epochs
+INFO: Testing on 543344 frames
+Evaluating...
+Loading evaluate checkpoint checkpoint/model_h36m/best_epoch.bin
+This model was trained for 1 epochs
+----Sitting----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 971.7827758789062 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 971.7827758789062 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 971.7827758789062 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 971.7827758789062 mm
+step 1 : Protocol #1 Error (MPJPE) J_Best: 1038.3406982421875 mm
+step 1 : Protocol #1 Error (MPJPE) P_Best: 1038.3406982421875 mm
+step 1 : Protocol #1 Error (MPJPE) P_Agg: 1038.3406982421875 mm
+step 1 : Protocol #1 Error (MPJPE) J_Agg: 1038.3406982421875 mm
+step 2 : Protocol #1 Error (MPJPE) J_Best: 967.6924438476562 mm
+step 2 : Protocol #1 Error (MPJPE) P_Best: 967.6924438476562 mm
+step 2 : Protocol #1 Error (MPJPE) P_Agg: 967.6924438476562 mm
+step 2 : Protocol #1 Error (MPJPE) J_Agg: 967.6924438476562 mm
+step 3 : Protocol #1 Error (MPJPE) J_Best: 929.1492919921875 mm
+step 3 : Protocol #1 Error (MPJPE) P_Best: 929.1492919921875 mm
+step 3 : Protocol #1 Error (MPJPE) P_Agg: 929.1492919921875 mm
+step 3 : Protocol #1 Error (MPJPE) J_Agg: 929.1492919921875 mm
+step 4 : Protocol #1 Error (MPJPE) J_Best: 1035.597900390625 mm
+step 4 : Protocol #1 Error (MPJPE) P_Best: 1035.597900390625 mm
+step 4 : Protocol #1 Error (MPJPE) P_Agg: 1035.597900390625 mm
+step 4 : Protocol #1 Error (MPJPE) J_Agg: 1035.597900390625 mm
+----------
+Loading evaluate checkpoint checkpoint/model_h36m/best_epoch.bin
+This model was trained for 1 epochs
+----Smoking----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 946.1508178710938 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 946.1508178710938 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 946.1508178710938 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 946.1508178710938 mm
+step 1 : Protocol #1 Error (MPJPE) J_Best: 1018.3700561523438 mm
+step 1 : Protocol #1 Error (MPJPE) P_Best: 1018.3700561523438 mm
+step 1 : Protocol #1 Error (MPJPE) P_Agg: 1018.3700561523438 mm
+step 1 : Protocol #1 Error (MPJPE) J_Agg: 1018.3700561523438 mm
+step 2 : Protocol #1 Error (MPJPE) J_Best: 961.3837890625 mm
+step 2 : Protocol #1 Error (MPJPE) P_Best: 961.3837890625 mm
+step 2 : Protocol #1 Error (MPJPE) P_Agg: 961.3837890625 mm
+step 2 : Protocol #1 Error (MPJPE) J_Agg: 961.3837890625 mm
+step 3 : Protocol #1 Error (MPJPE) J_Best: 912.3340454101562 mm
+step 3 : Protocol #1 Error (MPJPE) P_Best: 912.3340454101562 mm
+step 3 : Protocol #1 Error (MPJPE) P_Agg: 912.3340454101562 mm
+step 3 : Protocol #1 Error (MPJPE) J_Agg: 912.3340454101562 mm
+step 4 : Protocol #1 Error (MPJPE) J_Best: 1025.2352294921875 mm
+step 4 : Protocol #1 Error (MPJPE) P_Best: 1025.2352294921875 mm
+step 4 : Protocol #1 Error (MPJPE) P_Agg: 1025.2352294921875 mm
+step 4 : Protocol #1 Error (MPJPE) J_Agg: 1025.2352294921875 mm
+----------
+Loading evaluate checkpoint checkpoint/model_h36m/best_epoch.bin
+This model was trained for 1 epochs
+----Photo----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 948.9122924804688 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 948.9122924804688 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 948.9122924804688 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 948.9122924804688 mm
+step 1 : Protocol #1 Error (MPJPE) J_Best: 1017.0049438476562 mm
+step 1 : Protocol #1 Error (MPJPE) P_Best: 1017.0049438476562 mm
+step 1 : Protocol #1 Error (MPJPE) P_Agg: 1017.0049438476562 mm
+step 1 : Protocol #1 Error (MPJPE) J_Agg: 1017.0049438476562 mm
+step 2 : Protocol #1 Error (MPJPE) J_Best: 962.9913940429688 mm
+step 2 : Protocol #1 Error (MPJPE) P_Best: 962.9913940429688 mm
+step 2 : Protocol #1 Error (MPJPE) P_Agg: 962.9913940429688 mm
+step 2 : Protocol #1 Error (MPJPE) J_Agg: 962.9913940429688 mm
+step 3 : Protocol #1 Error (MPJPE) J_Best: 902.591064453125 mm
+step 3 : Protocol #1 Error (MPJPE) P_Best: 902.591064453125 mm
+step 3 : Protocol #1 Error (MPJPE) P_Agg: 902.591064453125 mm
+step 3 : Protocol #1 Error (MPJPE) J_Agg: 902.591064453125 mm
+step 4 : Protocol #1 Error (MPJPE) J_Best: 1003.810302734375 mm
+step 4 : Protocol #1 Error (MPJPE) P_Best: 1003.810302734375 mm
+step 4 : Protocol #1 Error (MPJPE) P_Agg: 1003.810302734375 mm
+step 4 : Protocol #1 Error (MPJPE) J_Agg: 1003.810302734375 mm
+----------
+Loading evaluate checkpoint checkpoint/model_h36m/best_epoch.bin
+This model was trained for 1 epochs
+----Directions----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 932.4022827148438 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 932.4022827148438 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 932.4022827148438 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 932.4022827148438 mm
+step 1 : Protocol #1 Error (MPJPE) J_Best: 1010.7322998046875 mm
+step 1 : Protocol #1 Error (MPJPE) P_Best: 1010.7322998046875 mm
+step 1 : Protocol #1 Error (MPJPE) P_Agg: 1010.7322998046875 mm
+step 1 : Protocol #1 Error (MPJPE) J_Agg: 1010.7322998046875 mm
+step 2 : Protocol #1 Error (MPJPE) J_Best: 961.687744140625 mm
+step 2 : Protocol #1 Error (MPJPE) P_Best: 961.687744140625 mm
+step 2 : Protocol #1 Error (MPJPE) P_Agg: 961.687744140625 mm
+step 2 : Protocol #1 Error (MPJPE) J_Agg: 961.687744140625 mm
+step 3 : Protocol #1 Error (MPJPE) J_Best: 895.997802734375 mm
+step 3 : Protocol #1 Error (MPJPE) P_Best: 895.997802734375 mm
+step 3 : Protocol #1 Error (MPJPE) P_Agg: 895.997802734375 mm
+step 3 : Protocol #1 Error (MPJPE) J_Agg: 895.997802734375 mm
+step 4 : Protocol #1 Error (MPJPE) J_Best: 1012.3429565429688 mm
+step 4 : Protocol #1 Error (MPJPE) P_Best: 1012.3429565429688 mm
+step 4 : Protocol #1 Error (MPJPE) P_Agg: 1012.3429565429688 mm
+step 4 : Protocol #1 Error (MPJPE) J_Agg: 1012.3429565429688 mm
+----------
+Loading evaluate checkpoint checkpoint/model_h36m/best_epoch.bin
+This model was trained for 1 epochs
+----SittingDown----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 910.6548461914062 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 910.6548461914062 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 910.6548461914062 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 910.6548461914062 mm
+step 1 : Protocol #1 Error (MPJPE) J_Best: 972.82763671875 mm
+step 1 : Protocol #1 Error (MPJPE) P_Best: 972.82763671875 mm
+step 1 : Protocol #1 Error (MPJPE) P_Agg: 972.82763671875 mm
+step 1 : Protocol #1 Error (MPJPE) J_Agg: 972.82763671875 mm
+step 2 : Protocol #1 Error (MPJPE) J_Best: 926.0863647460938 mm
+step 2 : Protocol #1 Error (MPJPE) P_Best: 926.0863647460938 mm
+step 2 : Protocol #1 Error (MPJPE) P_Agg: 926.0863647460938 mm
+step 2 : Protocol #1 Error (MPJPE) J_Agg: 926.0863647460938 mm
+step 3 : Protocol #1 Error (MPJPE) J_Best: 903.2744750976562 mm
+step 3 : Protocol #1 Error (MPJPE) P_Best: 903.2744750976562 mm
+step 3 : Protocol #1 Error (MPJPE) P_Agg: 903.2744750976562 mm
+step 3 : Protocol #1 Error (MPJPE) J_Agg: 903.2744750976562 mm
+step 4 : Protocol #1 Error (MPJPE) J_Best: 997.9736938476562 mm
+step 4 : Protocol #1 Error (MPJPE) P_Best: 997.9736938476562 mm
+step 4 : Protocol #1 Error (MPJPE) P_Agg: 997.9736938476562 mm
+step 4 : Protocol #1 Error (MPJPE) J_Agg: 997.9736938476562 mm
+----------
+Loading evaluate checkpoint checkpoint/model_h36m/best_epoch.bin
+This model was trained for 1 epochs
+----Phoning----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 957.1889038085938 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 957.1889038085938 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 957.1889038085938 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 957.1889038085938 mm
+step 1 : Protocol #1 Error (MPJPE) J_Best: 1027.296875 mm
+step 1 : Protocol #1 Error (MPJPE) P_Best: 1027.296875 mm
+step 1 : Protocol #1 Error (MPJPE) P_Agg: 1027.296875 mm
+step 1 : Protocol #1 Error (MPJPE) J_Agg: 1027.296875 mm
+step 2 : Protocol #1 Error (MPJPE) J_Best: 968.4107055664062 mm
+step 2 : Protocol #1 Error (MPJPE) P_Best: 968.4107055664062 mm
+step 2 : Protocol #1 Error (MPJPE) P_Agg: 968.4107055664062 mm
+step 2 : Protocol #1 Error (MPJPE) J_Agg: 968.4107055664062 mm
+step 3 : Protocol #1 Error (MPJPE) J_Best: 918.4078979492188 mm
+step 3 : Protocol #1 Error (MPJPE) P_Best: 918.4078979492188 mm
+step 3 : Protocol #1 Error (MPJPE) P_Agg: 918.4078979492188 mm
+step 3 : Protocol #1 Error (MPJPE) J_Agg: 918.4078979492188 mm
+step 4 : Protocol #1 Error (MPJPE) J_Best: 1030.0302734375 mm
+step 4 : Protocol #1 Error (MPJPE) P_Best: 1030.0302734375 mm
+step 4 : Protocol #1 Error (MPJPE) P_Agg: 1030.0302734375 mm
+step 4 : Protocol #1 Error (MPJPE) J_Agg: 1030.0302734375 mm
+----------
+Loading evaluate checkpoint checkpoint/model_h36m/best_epoch.bin
+This model was trained for 1 epochs
+----Purchases----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 886.6401977539062 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 886.6401977539062 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 886.6401977539062 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 886.6401977539062 mm
+step 1 : Protocol #1 Error (MPJPE) J_Best: 959.7741088867188 mm
+step 1 : Protocol #1 Error (MPJPE) P_Best: 959.7741088867188 mm
+step 1 : Protocol #1 Error (MPJPE) P_Agg: 959.7741088867188 mm
+step 1 : Protocol #1 Error (MPJPE) J_Agg: 959.7741088867188 mm
+step 2 : Protocol #1 Error (MPJPE) J_Best: 918.3720703125 mm
+step 2 : Protocol #1 Error (MPJPE) P_Best: 918.3720703125 mm
+step 2 : Protocol #1 Error (MPJPE) P_Agg: 918.3720703125 mm
+step 2 : Protocol #1 Error (MPJPE) J_Agg: 918.3720703125 mm
+step 3 : Protocol #1 Error (MPJPE) J_Best: 858.8036499023438 mm
+step 3 : Protocol #1 Error (MPJPE) P_Best: 858.8036499023438 mm
+step 3 : Protocol #1 Error (MPJPE) P_Agg: 858.8036499023438 mm
+step 3 : Protocol #1 Error (MPJPE) J_Agg: 858.8036499023438 mm
+step 4 : Protocol #1 Error (MPJPE) J_Best: 968.9000244140625 mm
+step 4 : Protocol #1 Error (MPJPE) P_Best: 968.9000244140625 mm
+step 4 : Protocol #1 Error (MPJPE) P_Agg: 968.9000244140625 mm
+step 4 : Protocol #1 Error (MPJPE) J_Agg: 968.9000244140625 mm
+----------
+Loading evaluate checkpoint checkpoint/model_h36m/best_epoch.bin
+This model was trained for 1 epochs

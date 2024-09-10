@@ -1,0 +1,15 @@
+Train!
+python main.py -k cpn_ft_h36m_dbb -c checkpoint/model_h36m -gpu 0 -num_proposals 1
+CUDA Device Count:  1
+Namespace(actions='*', alpha=0.01, batch_size=1024, beta=2, bone_length_term=True, by_subject=False, checkpoint='checkpoint/model_h36m', checkpoint_frequency=20, compare=False, coverlr=False, cs=512, data_augmentation=True, dataset='h36m', debug=False, dense=False, dep=8, depth=4, disable_optimizations=False, downsample=1, dropout=0.0, epochs=400, evaluate='', export_training_curves=False, ft=False, ftchk='epoch_330.pth', ftpath='checkpoint/exp13_ft2d', ftpostrf=False, gpu='0', keypoints='cpn_ft_h36m_dbb', learning_rate=6e-05, linear_channel_size=1024, linear_projection=False, log='log/default', lr_decay=0.993, lr_decay_gap=10000, min_loss=100000, no_eval=False, no_proj=False, nolog=False, num_proposals=1, number_of_frames=243, p2=False, postrf=False, render=False, resume='', sampling_timesteps=5, scale=1.0, stride=243, subjects_test='S9,S11', subjects_train='S1,S5,S6,S7,S8', subjects_unlabeled='', subset=1, test_time_augmentation=True, timestep=1000, viz_action=None, viz_bitrate=3000, viz_camera=0, viz_downsample=1, viz_export=None, viz_limit=-1, viz_no_ground_truth=False, viz_output=None, viz_size=5, viz_skip=0, viz_subject=None, viz_video=None, warmup=1)
+Loading dataset...
+Preparing data...
+Loading 2D detections...
+INFO: Receptive field: 243 frames
+INFO: Trainable parameter count: 35.888131 Million
+INFO: Testing on 543344 frames
+INFO: Training on 1559752 frames
+** Note: reported losses are averaged over all frames.
+** The final evaluation will be carried out after the last training epoch.
+0/3358
+1000/3358

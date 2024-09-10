@@ -12,15 +12,20 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["-k", "cpn_ft_h36m_dbb",
+            "args": 
+            // ["-k", "cpn_ft_h36m_dbb",
+            // "-c", "checkpoint/model_h36m",
+            // "-gpu", "0",
+            // "--nolog",
+            // ]
+
+            ["-k", "cpn_ft_h36m_dbb",
             "-c", "checkpoint/model_h36m",
             "-gpu", "0",
             "--nolog",
-            ]
-
-            // "--evaluate", "best_epoch_20_10.bin",
-            // "-num_proposals", "20",
-            // "-b", "4",]
+            "--evaluate", "best_epoch.bin",
+            "-num_proposals", "20",
+            "-b", "4",]
             // "args": ["--img-path"]
         }
     ]

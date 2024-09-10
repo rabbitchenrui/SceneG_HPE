@@ -144,7 +144,7 @@ class D3DP(nn.Module):
 
         return ModelPrediction(pred_noise, x_start)
 
-    def model_predictions_fliping(self, x, inputs_2d, inputs_2d_flip, t):
+    def model_predictions_fliping(self, x, inputs_2d, inputs_2d_flip, t, image):
         x_t = torch.clamp(x, min=-1.1 * self.scale, max=1.1*self.scale)
         x_t = x_t / self.scale
         x_t_flip = x_t.clone()
@@ -152,8 +152,8 @@ class D3DP(nn.Module):
         x_t_flip[:, :, :, self.joints_left + self.joints_right] = x_t_flip[:, :, :,
                                                                         self.joints_right + self.joints_left]
 
-        pred_pose = self.pose_estimator(inputs_2d, x_t, t)
-        pred_pose_flip = self.pose_estimator(inputs_2d_flip, x_t_flip, t)
+        pred_pose = self.pose_estimator(inputs_2d, x_t, t, image)
+        pred_pose_flip = self.pose_estimator(inputs_2d_flip, x_t_flip, t, image)
 
         pred_pose_flip[:, :, :, :, 0] *= -1
         pred_pose_flip[:, :, :, self.joints_left + self.joints_right] = pred_pose_flip[:, :, :,
@@ -212,7 +212,7 @@ class D3DP(nn.Module):
         return preds_all
 
     @torch.no_grad()
-    def ddim_sample_flip(self, inputs_2d, inputs_3d, clip_denoised=True, do_postprocess=True, input_2d_flip=None):
+    def ddim_sample_flip(self, inputs_2d, inputs_3d, image, clip_denoised=True, do_postprocess=True, input_2d_flip=None):
         batch = inputs_2d.shape[0]
         shape = (batch, self.num_proposals, self.frames, 17, 3)
         total_timesteps, sampling_timesteps, eta, objective = self.num_timesteps, self.sampling_timesteps, self.ddim_sampling_eta, self.objective
@@ -232,7 +232,7 @@ class D3DP(nn.Module):
 
             #print("%d/%d" % (time, total_timesteps))
 
-            preds = self.model_predictions_fliping(img, inputs_2d, input_2d_flip, time_cond)
+            preds = self.model_predictions_fliping(img, inputs_2d, input_2d_flip, time_cond, image)
             pred_noise, x_start = preds.pred_noise, preds.pred_x_start
 
             preds_all.append(x_start)
@@ -271,7 +271,7 @@ class D3DP(nn.Module):
         # Prepare Proposals.
         if not self.is_train:
             if self.flip:
-                results = self.ddim_sample_flip(input_2d, input_3d, input_2d_flip=input_2d_flip)
+                results = self.ddim_sample_flip(input_2d, input_3d, input_2d_flip=input_2d_flip, image=image)
             else:
                 results = self.ddim_sample(input_2d, input_3d)
             return results

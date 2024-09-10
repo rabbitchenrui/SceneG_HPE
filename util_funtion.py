@@ -80,7 +80,7 @@ def get_clip_tensor_dic(type='train'):
                 # with open(cam_path, 'rb') as fl:
                     # data = pkl.load(fl)
                 data = torch.load(cam_path)
-                target_dic[file][action][cam] = data[0]
+                target_dic[file][action][cam] = data[0].cpu().numpy()
     # np.save("{}_depth.npy".format(type), target_dic)
     save_path = "{}_clip_tensor.pkl".format(type)
     with open(save_path, 'wb') as fl:
@@ -98,8 +98,10 @@ def interprate(input_array, type = 'linear'):
     print(output_array.shape)
 
 def test_tensor_from_clip(filename):
-    tensor = torch.load(filename)
-    print(tensor.shape)
+    # tensor = torch.load(filename)
+    with open(filename, 'rb') as tar:
+        data = pkl.load(tar)
+    print("Done")
 if __name__ == "__main__":
     # get_depth_dic("./z_depth", 'train')
     # print("Done")
@@ -111,7 +113,7 @@ if __name__ == "__main__":
     # input = np.random.rand(48, 17)
     # interprate(input)
 
-    # filename = "clip_feature/S9/Sitting/55011271.pt"
+    # filename = "train_clip_tensor.pkl"
     # test_tensor_from_clip(filename)
 
     get_clip_tensor_dic('test')
