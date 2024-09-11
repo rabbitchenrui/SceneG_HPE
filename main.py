@@ -7,7 +7,7 @@
 import numpy as np
 import random
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4,5"
 from common.arguments import parse_args
 import torch
 
@@ -487,7 +487,7 @@ if not args.evaluate:
                 for cam, batch, batch_2d, batch_clip_tensor in test_generator.next_epoch():
                     inputs_3d = torch.from_numpy(batch.astype('float32'))
                     inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
-                    inputs_clip_tensor = torch.from_numpt(batch_clip_tensor.astype('float32'))
+                    inputs_clip_tensor = torch.from_numpy(batch_clip_tensor.astype('float32'))
 
                     ##### apply test-time-augmentation (following Videopose3d)
                     inputs_2d_flip = inputs_2d.clone()
