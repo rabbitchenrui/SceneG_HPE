@@ -147,13 +147,13 @@ class TemporalCrossAttention(nn.Module):
         H = self.num_head
         query = self.query(self.norm(x)).unsqueeze(2)
         query = query.view(B, T, H, -1)
-        key = self.key(self.imgf_norm(imgf)).unsqueeze(1)
+        key = self.key(self.imgf_norm(imgf)).unsqueeze(2)
         key = key.repeat(int(B/key.shape[0]), 1, 1, 1)
         key = key.view(B, N, H, -1)
 
         attention = torch.einsum('bnhd,bmhd->bnmh', query, key) / math.sqrt(D // H)
         weight = self.dropout(F.softmax(attention, dim=2))        
-        value = self.value(self.imgf_norm(imgf)).unsqueeze(1)
+        value = self.value(self.imgf_norm(imgf)).unsqueeze(2)
         value = value.repeat(int(B/value.shape[0]), 1, 1, 1)
         value = value.view(B, N, H, -1)
         y = torch.einsum('bnmh,bmhd->bnhd', weight, value).reshape(B, T, D)
@@ -202,8 +202,14 @@ class  MixSTE2(nn.Module):
         out_dim = 3     #### output dimension is num_joints * 3
         self.is_train=is_train
 
+        ### depth embedding
+        self.img_len = 48
+        self.depth_norm = nn.LayerNorm(num_joints)
+        self.depth_embedding = Mlp(in_features=self.img_len, hidden_features=512, out_features=243)
+        self.Spatial_depth_embed = nn.Parameter(torch.zeros(1, num_joints, embed_dim_ratio))
+        self.Temporal_depth_embed = nn.Parameter(torch.zeros(1, self.img_len, 1))
         ### spatial patch embedding
-        self.Spatial_patch_to_embedding = nn.Linear(in_chans + 3, embed_dim_ratio)
+        self.Spatial_patch_to_embedding = nn.Linear(in_chans + 4, embed_dim_ratio)
 
         self.Spatial_pos_embed = nn.Parameter(torch.zeros(1, num_joints, embed_dim_ratio))
 
@@ -247,6 +253,20 @@ class  MixSTE2(nn.Module):
             nn.LayerNorm(embed_dim),
             nn.Linear(embed_dim , out_dim),
         )
+
+    # def depth_cat(self, depth):
+    #     b, f, j = depth.shape
+    #     depth = self.depth_norm(depth)
+    #     depth = depth.permute(0, 2, 1)
+    #     depth = self.depth_embedding(depth).permute(0, 2, 1).unsqueeze(-1)
+    #     return depth
+    def depth_preprocess(self, depth):
+        b, f, j = depth.shape
+        depth = self.depth_norm(depth)
+        depth = depth + self.Temporal_depth_embed
+        depth = depth.permute(0, 2, 1)
+        depth = self.depth_embedding(depth).permute(0, 2, 1).unsqueeze(-1)
+        return depth
 
 
     def STE_forward(self, x_2d, x_3d, t):
@@ -314,11 +334,18 @@ class  MixSTE2(nn.Module):
         
         return x
 
-    def forward(self, x_2d, x_3d, t, img):
+
+
+    def forward(self, x_2d, x_3d, t, img, depth):
+        seq_depth = self.depth_preprocess(depth)
         if self.is_train:
             b, f, n, c = x_2d.shape
+            x_2d = torch.cat((x_2d, seq_depth), dim=-1)
         else:
             b, h, f, n, c = x_3d.shape
+            # seq_depth = seq_depth.unsqueeze(1).repeat(1, h, 1, 1, 1)
+            # print(x_2d.shape, seq_depth.shape)
+            x_2d = torch.cat((x_2d, seq_depth), dim=-1)
 
         x = self.STE_forward(x_2d, x_3d, t)
 
@@ -337,5 +364,8 @@ class  MixSTE2(nn.Module):
             x = x.view(b, h, f, n, -1)
 
         return x
+    
+
+
 
 

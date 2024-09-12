@@ -13,20 +13,21 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": 
-            // ["-k", "cpn_ft_h36m_dbb",
-            // "-c", "checkpoint/model_h36m",
-            // "-gpu", "0",
-            // "--nolog",
-            // ]
-
             ["-k", "cpn_ft_h36m_dbb",
-            "-c", "checkpoint/model_h36m",
+            "-c", "checkpoint/model_h36m_test",
             "-gpu", "0",
             "--nolog",
-            "--evaluate", "best_epoch.bin",
-            "-num_proposals", "20",
-            "-b", "4",]
-            // "args": ["--img-path"]
+            "--debug"
+            ]
+
+            // ["-k", "cpn_ft_h36m_dbb",
+            // "-c", "checkpoint/model_h36m_test",
+            // "-gpu", "0",
+            // "--nolog",
+            // "--evaluate", "best_epoch.bin",
+            // "-num_proposals", "1",
+            // "-sampling_timesteps", "1",
+            // "-b", "4",]
         }
     ]
 }

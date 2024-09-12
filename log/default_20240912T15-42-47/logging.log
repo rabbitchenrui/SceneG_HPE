@@ -1,0 +1,152 @@
+Evaluate!
+python main.py -k cpn_ft_h36m_dbb -c checkpoint/model_depth -gpu 1 --evaluate best_epoch.bin -sampling_timesteps 1 -num_proposals 1 -b 4
+CUDA Device Count:  1
+Namespace(actions='*', alpha=0.01, batch_size=4, beta=2, bone_length_term=True, by_subject=False, checkpoint='checkpoint/model_depth', checkpoint_frequency=20, compare=False, coverlr=False, cs=512, data_augmentation=True, dataset='h36m', debug=False, dense=False, dep=8, depth=4, disable_optimizations=False, downsample=1, dropout=0.0, epochs=100, evaluate='best_epoch.bin', export_training_curves=False, ft=False, ftchk='epoch_330.pth', ftpath='checkpoint/exp13_ft2d', ftpostrf=False, gpu='1', keypoints='cpn_ft_h36m_dbb', learning_rate=6e-05, linear_channel_size=1024, linear_projection=False, log='log/default', lr_decay=0.993, lr_decay_gap=10000, min_loss=100000, no_eval=False, no_proj=False, nolog=False, num_proposals=1, number_of_frames=243, p2=False, postrf=False, render=False, resume='', sampling_timesteps=1, scale=1.0, stride=243, subjects_test='S9,S11', subjects_train='S1,S5,S6,S7,S8', subjects_unlabeled='', subset=1, test_time_augmentation=True, timestep=1000, viz_action=None, viz_bitrate=3000, viz_camera=0, viz_downsample=1, viz_export=None, viz_limit=-1, viz_no_ground_truth=False, viz_output=None, viz_size=5, viz_skip=0, viz_subject=None, viz_video=None, warmup=1)
+Loading dataset...
+Preparing data...
+Loading 2D detections...
+INFO: Receptive field: 243 frames
+INFO: Trainable parameter count: 36.047176 Million
+Loading checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+INFO: Testing on 543344 frames
+Evaluating...
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Sitting----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 54.334564208984375 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 54.334564208984375 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 54.334564208984375 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 54.334564208984375 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Smoking----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 45.05005645751953 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 45.05005645751953 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 45.05005645751953 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 45.05005645751953 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Photo----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 49.401611328125 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 49.401611328125 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 49.401611328125 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 49.401611328125 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Directions----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 39.967124938964844 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 39.967124938964844 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 39.967124938964844 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 39.967124938964844 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----SittingDown----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 54.31427764892578 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 54.31427764892578 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 54.31427764892578 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 54.31427764892578 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Phoning----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 44.58412551879883 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 44.58412551879883 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 44.58412551879883 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 44.58412551879883 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Purchases----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 40.747764587402344 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 40.747764587402344 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 40.747764587402344 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 40.747764587402344 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Greeting----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 39.220924377441406 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 39.220924377441406 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 39.220924377441406 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 39.220924377441406 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----WalkTogether----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 32.874176025390625 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 32.874176025390625 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 32.874176025390625 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 32.874176025390625 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Posing----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 41.53420639038086 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 41.53420639038086 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 41.53420639038086 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 41.53420639038086 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Waiting----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 42.662899017333984 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 42.662899017333984 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 42.662899017333984 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 42.662899017333984 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Discussion----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 41.551998138427734 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 41.551998138427734 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 41.551998138427734 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 41.551998138427734 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Walking----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 31.844255447387695 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 31.844255447387695 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 31.844255447387695 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 31.844255447387695 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----Eating----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 40.09877014160156 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 40.09877014160156 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 40.09877014160156 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 40.09877014160156 mm
+----------
+Loading evaluate checkpoint checkpoint/model_depth/best_epoch.bin
+This model was trained for 75 epochs
+----WalkDog----
+Test time augmentation: False
+step 0 : Protocol #1 Error (MPJPE) J_Best: 42.945831298828125 mm
+step 0 : Protocol #1 Error (MPJPE) P_Best: 42.945831298828125 mm
+step 0 : Protocol #1 Error (MPJPE) P_Agg: 42.945831298828125 mm
+step 0 : Protocol #1 Error (MPJPE) J_Agg: 42.945831298828125 mm
+----------
+step 0 Protocol #1   (MPJPE) action-wise average J_Best: 42.742172 mm
+step 0 Protocol #1   (MPJPE) action-wise average P_Best: 42.742172 mm
+step 0 Protocol #1   (MPJPE) action-wise average P_Agg: 42.742172 mm
+step 0 Protocol #1   (MPJPE) action-wise average J_Agg: 42.742172 mm

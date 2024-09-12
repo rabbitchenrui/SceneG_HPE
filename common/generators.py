@@ -272,6 +272,7 @@ class UnchunkedGenerator_Seq:
         assert poses_3d is None or len(poses_3d) == len(poses_2d)
         assert cameras is None or len(cameras) == len(poses_2d)
 
+        # self.augment = augment
         self.augment = False
         self.kps_left = kps_left
         self.kps_right = kps_right
@@ -371,7 +372,7 @@ class UnchunkedGenerator_Seq:
                 batch_2d[1, :, :, 0] *= -1
                 batch_2d[1, :, self.kps_left + self.kps_right] = batch_2d[1, :, self.kps_right + self.kps_left]
             # print(batch_2d.shape)
-            yield batch_cam, batch_3d, batch_2d, batch_clip_feature
+            yield batch_cam, batch_3d, batch_2d, batch_depth, batch_clip_feature 
 
 class UnchunkedGenerator_Seq2Seq:
     """

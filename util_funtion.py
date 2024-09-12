@@ -101,7 +101,19 @@ def test_tensor_from_clip(filename):
     # tensor = torch.load(filename)
     with open(filename, 'rb') as tar:
         data = pkl.load(tar)
-    print("Done")
+    # print("Done")
+
+def read_img(filelist, img_embedding, img_preprocess, device):
+    output_image_features = []
+    for i in range(len(filelist)):
+        images = [Image.open(x).convert("RGB") for x in filelist[i]]
+        transformered_images =  torch.stack([img_preprocess(image) for image in images]).to(device)
+        with torch.no_grad():
+            image_features = img_embedding.encode_image(transformered_images)
+            output_image_features.append(image_features.float())
+    return torch.stack(output_image_features)
+
+
 if __name__ == "__main__":
     # get_depth_dic("./z_depth", 'train')
     # print("Done")

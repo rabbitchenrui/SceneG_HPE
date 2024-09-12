@@ -7,7 +7,7 @@
 import numpy as np
 import random
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "4,5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 from common.arguments import parse_args
 import torch
 
@@ -155,18 +155,6 @@ if not args.render:
 else:
     subjects_test = [args.viz_subject]
 
-
-def read_img(filelist, img_embedding, img_preprocess, device):
-    output_image_features = []
-    for i in range(len(filelist)):
-        images = [Image.open(x).convert("RGB") for x in filelist[i]]
-        transformered_images =  torch.stack([img_preprocess(image) for image in images]).to(device)
-        with torch.no_grad():
-            image_features = img_embedding.encode_image(transformered_images)
-            output_image_features.append(image_features.float())
-    return torch.stack(output_image_features)
-
-
 def fetch(subjects, action_filter=None, subset=1, parse_3d_poses=True):
     out_poses_3d = []
     out_poses_2d = []
@@ -297,7 +285,7 @@ print('INFO: Testing on {} frames'.format(test_generator.num_frames()))
 if not args.nolog:
     writer.add_text(args.log+'_'+TIMESTAMP + '/Testing Frames', str(test_generator.num_frames()))
 
-def eval_data_prepare(receptive_field, inputs_2d, inputs_3d, clip_tensor):
+def eval_data_prepare(receptive_field, inputs_2d, inputs_3d, clip_tensor, pesudo_depth):
     # splitting test data 
     assert inputs_2d.shape[:-1] == inputs_3d.shape[:-1], "2d and 3d inputs shape must be same! "+str(inputs_2d.shape)+str(inputs_3d.shape)
 
@@ -308,6 +296,7 @@ def eval_data_prepare(receptive_field, inputs_2d, inputs_3d, clip_tensor):
     num_split.append(inputs_2d_p.shape[0])
     clip_split = list(range(1, inputs_2d_p.shape[0], 5))
     clip_tensor_p = torch.squeeze(clip_tensor)
+    pesudo_depth_p = torch.squeeze(pesudo_depth)
 
     if inputs_2d_p.shape[0] / receptive_field > inputs_2d_p.shape[0] // receptive_field: 
         out_num = inputs_2d_p.shape[0] // receptive_field+1
@@ -317,6 +306,7 @@ def eval_data_prepare(receptive_field, inputs_2d, inputs_3d, clip_tensor):
     eval_input_2d = torch.empty(out_num, receptive_field, inputs_2d_p.shape[1], inputs_2d_p.shape[2])
     eval_input_3d = torch.empty(out_num, receptive_field, inputs_3d_p.shape[1], inputs_3d_p.shape[2])
     eval_clip_tensor = torch.empty(out_num, 48, clip_tensor_p.shape[1])
+    eval_pesudo_depth = torch.empty(out_num, 48, pesudo_depth_p.shape[1])
 
     for i in range(out_num-1):
         eval_input_2d[i,:,:,:] = inputs_2d_p[i*receptive_field:i*receptive_field+receptive_field,:,:]
@@ -325,6 +315,7 @@ def eval_data_prepare(receptive_field, inputs_2d, inputs_3d, clip_tensor):
         if len(clip_split_p) > 48:
             clip_split_p = clip_split_p[:48]
         eval_clip_tensor[i] = clip_tensor_p[clip_split_p]
+        eval_pesudo_depth[i] = pesudo_depth_p[clip_split_p]
     
     # deal special 
     for j in range(len(eval_clip_tensor)):
@@ -346,8 +337,9 @@ def eval_data_prepare(receptive_field, inputs_2d, inputs_3d, clip_tensor):
     eval_input_2d[-1,:,:,:] = inputs_2d_p[-receptive_field:,:,:]
     eval_input_3d[-1,:,:,:] = inputs_3d_p[-receptive_field:,:,:]
     eval_clip_tensor[-1] = clip_tensor_p[-48:, :]
+    eval_pesudo_depth[-1] = pesudo_depth_p[-48:, :]
 
-    return eval_input_2d, eval_input_3d, eval_clip_tensor
+    return eval_input_2d, eval_input_3d, eval_clip_tensor, eval_pesudo_depth
 
 
 ###################
@@ -413,7 +405,7 @@ if not args.evaluate:
         # Just train 1 time, for quick debug
         quickdebug=args.debug
         for cameras_train, batch_3d, batch_2d, pesudo_depth, clip_feature in train_generator.next_epoch():
-            # if notrain:break
+            # if notrain:
             # notrain=True
             if iteration % 1000 == 0:
                 print("%d/%d"% (iteration, num_batches))
@@ -422,17 +414,14 @@ if not args.evaluate:
             inputs_3d = torch.from_numpy(batch_3d.astype('float32'))
             inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
             clip_feature = torch.from_numpy(clip_feature.astype('float32'))
+            pesudo_depth = torch.from_numpy(pesudo_depth.astype('float32'))
             device = "cuda:{}".format(args.gpu)
-            # start_time = time_now.time()
-
-            # image_list = read_img(filelist, model_clip, preprocess, device)
             
-            # end_time = time_now.time()
-            # print("clip time cost : {}".format(end_time - start_time))
-
             if torch.cuda.is_available():
                 inputs_3d = inputs_3d.cuda()
                 inputs_2d = inputs_2d.cuda()
+                clip_feature = clip_feature.cuda()
+                pesudo_depth = pesudo_depth.cuda()
                 if cameras_train is not None:
                     cameras_train = cameras_train.cuda()
             inputs_traj = inputs_3d[:, :, :1].clone()
@@ -441,7 +430,7 @@ if not args.evaluate:
             optimizer.zero_grad()
 
             # Predict 3D poses
-            predicted_3d_pos = model_pos_train(inputs_2d, inputs_3d, clip_feature)
+            predicted_3d_pos = model_pos_train(inputs_2d, inputs_3d, clip_feature, pesudo_depth)
 
             loss_3d_pos = mpjpe(predicted_3d_pos, inputs_3d)
 
@@ -465,7 +454,6 @@ if not args.evaluate:
                 if N==inputs_3d.shape[0] * inputs_3d.shape[1]:
                     break
 
-        # N = 1000
         losses_3d_train.append(epoch_loss_3d_train / N)
         losses_3d_pos_train.append(epoch_loss_3d_pos_train / N)
         # torch.cuda.empty_cache()
@@ -484,10 +472,11 @@ if not args.evaluate:
             iteration = 0
             if not args.no_eval:
                 # Evaluate on test set
-                for cam, batch, batch_2d, batch_clip_tensor in test_generator.next_epoch():
+                for cam, batch, batch_2d, batch_pesudo_depth, batch_clip_tensor in test_generator.next_epoch():
                     inputs_3d = torch.from_numpy(batch.astype('float32'))
                     inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
                     inputs_clip_tensor = torch.from_numpy(batch_clip_tensor.astype('float32'))
+                    inputs_pesudo_depth = torch.from_numpy(batch_pesudo_depth.astype('float32'))
 
                     ##### apply test-time-augmentation (following Videopose3d)
                     inputs_2d_flip = inputs_2d.clone()
@@ -496,18 +485,21 @@ if not args.evaluate:
 
                     ##### convert size
                     inputs_3d_p = inputs_3d
-                    inputs_2d, inputs_3d, clip_tensor= eval_data_prepare(receptive_field, inputs_2d, inputs_3d_p, inputs_clip_tensor)
-                    inputs_2d_flip, _, _a = eval_data_prepare(receptive_field, inputs_2d_flip, inputs_3d_p, inputs_clip_tensor)
+                    inputs_2d, inputs_3d, clip_tensor, pesudo_depth = eval_data_prepare(receptive_field, inputs_2d, inputs_3d_p, inputs_clip_tensor, inputs_pesudo_depth)
+                    inputs_2d_flip, _, _a, _d = eval_data_prepare(receptive_field, inputs_2d_flip, inputs_3d_p, inputs_clip_tensor, inputs_pesudo_depth)
 
                     if torch.cuda.is_available():
                         inputs_3d = inputs_3d.cuda()
                         inputs_2d = inputs_2d.cuda()
                         inputs_2d_flip = inputs_2d_flip.cuda()
+                        inputs_clip_tensor = inputs_clip_tensor.cuda()
+                        inputs_pesudo_depth = inputs_pesudo_depth.cuda()
                     inputs_3d[:, :, 0] = 0
+                    # inputs_pesudo_depth -= inputs_pesudo_depth[:, 0:1]
 
                     # img = torch.zeros((batch_2d.shape[0], 48, 512))
                     predicted_3d_pos = model_pos_test_temp(inputs_2d, inputs_3d,
-                                                  input_2d_flip=inputs_2d_flip, image=clip_tensor)  # b, t, h, f, j, c
+                                                  input_2d_flip=inputs_2d_flip, image=clip_tensor, depth=pesudo_depth)  # b, t, h, f, j, c
 
                     predicted_3d_pos[:, :, :, :, 0] = 0
 
@@ -678,7 +670,8 @@ def evaluate(test_generator, action=None, return_predictions=False, use_trajecto
             if not use_trajectory_model:
                 # load best checkpoint
                 if args.evaluate == '':
-                    chk_file_path = os.path.join(args.checkpoint, 'best_epoch_%d_%.2f.bin' % (best_epoch, min_loss))
+                    # chk_file_path = os.path.join(args.checkpoint, 'best_epoch_%d_%.2f.bin' % (best_epoch, min_loss))
+                    chk_file_path = os.path.join(args.checkpoint, 'best_epoch.bin')
                     print('Loading best checkpoint', chk_file_path)
                 elif args.evaluate != '':
                     chk_file_path = os.path.join(args.checkpoint, args.evaluate)
@@ -695,11 +688,13 @@ def evaluate(test_generator, action=None, return_predictions=False, use_trajecto
 
         #num_batches = test_generator.batch_num()
         quickdebug=args.debug
-        for cam, batch, batch_2d, batch_clip_tensor in test_generator.next_epoch():
+        for cam, batch, batch_2d, batch_pesudo_depth, batch_clip_tensor in test_generator.next_epoch():
             inputs_2d = torch.from_numpy(batch_2d.astype('float32'))
             inputs_3d = torch.from_numpy(batch.astype('float32'))
             cam = torch.from_numpy(cam.astype('float32'))
             inputs_clip_tensor = torch.from_numpy(batch_clip_tensor.astype('float32'))
+            inputs_pesudo_depth = torch.from_numpy(batch_pesudo_depth.astype('float32'))
+            
 
 
             ##### apply test-time-augmentation (following Videopose3d)
@@ -726,8 +721,8 @@ def evaluate(test_generator, action=None, return_predictions=False, use_trajecto
                 inputs_2d, inputs_3d = eval_data_prepare_pf(81, inputs_2d, inputs_3d_p)
                 inputs_2d_flip, _ = eval_data_prepare_pf(81, inputs_2d_flip, inputs_3d_p)
             else:
-                inputs_2d, inputs_3d, clip_tensor = eval_data_prepare(receptive_field, inputs_2d, inputs_3d_p, inputs_clip_tensor)
-                inputs_2d_flip, _, _a = eval_data_prepare(receptive_field, inputs_2d_flip, inputs_3d_p, inputs_clip_tensor)
+                inputs_2d, inputs_3d, clip_tensor, pesudo_depth = eval_data_prepare(receptive_field, inputs_2d, inputs_3d_p, inputs_clip_tensor,inputs_pesudo_depth)
+                inputs_2d_flip, _, _a, _i = eval_data_prepare(receptive_field, inputs_2d_flip, inputs_3d_p, inputs_clip_tensor, inputs_pesudo_depth)
 
 
             if torch.cuda.is_available():
@@ -750,17 +745,19 @@ def evaluate(test_generator, action=None, return_predictions=False, use_trajecto
                     inputs_3d_single = inputs_3d[batch_cnt * bs:]
                     inputs_traj_single = inputs_traj[batch_cnt * bs:]
                     clip_tensor_single = clip_tensor[batch_cnt * bs:]
+                    pesudo_depth_single = pesudo_depth[batch_cnt * bs:]
                 else:
                     inputs_2d_single = inputs_2d[batch_cnt * bs:(batch_cnt+1) * bs]
                     inputs_2d_flip_single = inputs_2d_flip[batch_cnt * bs:(batch_cnt+1) * bs]
                     inputs_3d_single = inputs_3d[batch_cnt * bs:(batch_cnt+1) * bs]
                     inputs_traj_single = inputs_traj[batch_cnt * bs:(batch_cnt + 1) * bs]
                     clip_tensor_single = clip_tensor[batch_cnt * bs: (batch_cnt + 1) * bs]
+                    pesudo_depth_single = pesudo_depth[batch_cnt * bs: (batch_cnt + 1) * bs]
                     # clip_feature_single = clip_fe
 
 
                 # img = torch.zeros((batch_2d.shape[0], 48, 512))
-                predicted_3d_pos_single = model_eval(inputs_2d_single, inputs_3d_single, input_2d_flip=inputs_2d_flip_single, image=clip_tensor_single) #b, t, h, f, j, c
+                predicted_3d_pos_single = model_eval(inputs_2d_single, inputs_3d_single, input_2d_flip=inputs_2d_flip_single, image=clip_tensor_single, depth=pesudo_depth_single) #b, t, h, f, j, c
 
                 predicted_3d_pos_single[:, :, :, :, 0] = 0
 
